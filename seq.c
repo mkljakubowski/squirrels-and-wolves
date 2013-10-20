@@ -80,12 +80,13 @@ uint isRed(uint x, uint y){
 }
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
-void doSquirrelStuff(uint x, uint y, cell_t* cell){
+void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
 }
 
-void doWolveStuff(uint x, uint y, cell_t* cell){
+void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
+
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
   color_t currentColor = RED;
@@ -101,13 +102,13 @@ void worldLoop(int noOfGenerations){
 	  case ICE: break;
 	  case TREE: break;
 	  case SQUIRREL:
-	    doSquirrelStuff(x,y,cell);
+	    doSquirrelStuff(x, y, cell, currentColor);
 	    break;
 	  case TREE_WITH_SQUIRREL:
-	    doSquirrelStuff(x,y,cell);
+	    doSquirrelStuff(x, y, cell, currentColor);
 	    break;
 	  case WOLVE:
-	    doWolveStuff(x,y,cell);
+	    doWolveStuff(x, y, cell, currentColor);
 	    break;
 	}
       }
