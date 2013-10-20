@@ -38,7 +38,7 @@ uint wolveStarvationPeriod = 0;
 cell_t* getCell(uint x, uint y){
   assert(x < worldX && x > 0);
   assert(y < worldY && y > 0);
-  return &world[x * worldX + y];
+  return &world[y * worldX + x];
 }
 
 cell_t* getCellAndCheckBoundries(uint x, uint y){
