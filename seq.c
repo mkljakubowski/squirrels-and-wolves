@@ -20,6 +20,7 @@ typedef struct cell_t {
   uint breeding;	//breeding period of creature
 } cell_t;
 
+//list of neighbours of some cell
 typedef struct neighbours_t {
   cell_t** cells;
   uint size;
@@ -35,8 +36,8 @@ uint wolveStarvationPeriod = 0;
 
 /* FUNCTIONS */
 cell_t* getCell(uint x, uint y){
-  assert(x < worldX);
-  assert(y < worldY);
+  assert(x < worldX && x > 0);
+  assert(y < worldY && y > 0);
   return &world[x * worldX + y];
 }
 
@@ -192,6 +193,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == SQUIRREL){
       eat(cell, n);
+      n->color = color;
       return;
     }
   }
@@ -201,9 +203,12 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == EMPTY){
       move(cell, n);
+      n->color = color;
       return;
     }
   }
+  
+  //TODO: check for conflicts
   
   //if cant do anything
   checkIfShouldDie(cell);
@@ -220,10 +225,13 @@ void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == EMPTY || n->type == TREE){
       move(cell, n);
+      n->color = color;
       return;
     }
   }
   
+  //TODO: check for conflicts
+
   //if cant do anything
   checkIfShouldBreed(cell);
 }
@@ -239,7 +247,9 @@ void worldLoop(int noOfGenerations){
     for(x = 0 ; x < worldSize ; x++){
       for(y = 0 ; y < worldSize ; y++){
 	cell = getCell(x, y);
-	cell->color = currentColor; //clear color for next sub-generation
+	cell->color = currentColor;	//clear color for next sub-generation
+	cell->starvation--;		//dont care whats inside
+	cell->breeding++;
 	
  	switch(cell->type){
 	  case EMPTY: break;
@@ -261,6 +271,10 @@ void worldLoop(int noOfGenerations){
   }
 }
 
+void printWorld(){
+  
+}
+
 /* MAIN */
 int main(int argc, char **argv){
   if(argc < 6){
@@ -279,6 +293,7 @@ int main(int argc, char **argv){
 
   loadWorld(input);
   worldLoop(noOfGenerations);
+  printWorld();
   
   fclose(input);
   return 0;
