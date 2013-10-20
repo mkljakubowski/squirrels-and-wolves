@@ -208,7 +208,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
     }
   }
   
-  //TODO: check for conflicts
+  //TODO: check for conflicts (if one of neighbours is of color 'color' and type SQUIRREL)
   
   //if cant do anything
   checkIfShouldDie(cell);
@@ -230,7 +230,7 @@ void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
     }
   }
   
-  //TODO: check for conflicts
+  //TODO: check for conflicts (if one of neighbours is of color 'color' and type WOLVE)
 
   //if cant do anything
   checkIfShouldBreed(cell);
@@ -272,7 +272,7 @@ void worldLoop(int noOfGenerations){
 }
 
 void printWorld(){
-  
+  //TODO print the world to stdout
 }
 
 /* MAIN */
