@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
+/*
+ CELL NUMBERING
+ Cells are numbered as pixel on screen. Top left cell is (0,0), x grows to the right, y grows down.
+*/
+
 /* TYPES */
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLVE, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 typedef enum color_t { TRANSPARENT, RED, BLACK } color_t;
@@ -14,6 +19,11 @@ typedef struct cell_t {
   uint starvation;	//starvation period if wolve
   uint breeding;	//breeding period of creature
 } cell_t;
+
+typedef struct neighbours_t {
+  cell_t** cells;
+  uint size;
+} neighbours_t;
 
 /* GLOBALS */
 cell_t* world = NULL;
@@ -28,6 +38,12 @@ cell_t* getCell(uint x, uint y){
   assert(x < worldX);
   assert(y < worldY);
   return &world[x * worldX + y];
+}
+
+cell_t* getCellAndCheckBoundries(uint x, uint y){
+  if(x < 0 || x >= worldSize || y < 0 || y >= worldSize)
+    return NULL;
+  return getCell(x,y);
 }
 
 cell_habitant_t charToCellType(char c){
@@ -79,11 +95,58 @@ uint isRed(uint x, uint y){
   return 0;
 }
 
+cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
+  if(cell->type == ICE) return NULL;
+  if((cell->type == TREE || cell->type == TREE_WITH_SQUIRREL) && type == WOLVE) return NULL;
+  return cell;
+}
+
+//returns in correct order up -> right -> down -> left
+neighbours_t* getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
+  cell_t* up, *right, *down, *left;
+  up = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
+  right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
+  down = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
+  left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
+  
+  uint size = 0;
+  if(up != NULL) size++;
+  if(right != NULL) size++;
+  if(down != NULL) size++;
+  if(left != NULL) size++;
+  
+  neighbours_t neighbours;
+  neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
+  neighbours.size = size;
+  
+  uint pos = 0;
+  if(up != NULL) neighbours.cells[pos++] = up;
+  if(right != NULL) neighbours.cells[pos++] = right;
+  if(down != NULL) neighbours.cells[pos++] = down;
+  if(left != NULL) neighbours.cells[pos++] = left;
+  
+  return &neighbours;
+}
+
 /* ================================================= CELL BEHAVIOURS ================================================= */
 void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
+  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
+  uint i = 0;
+  cell_t* n = NULL;
+  
+  for(i = 0 ; i < neighbours->size ; i++){
+    n = neighbours->cells[i];
+  }
 }
 
 void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
+  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLVE);
+  uint i = 0;
+  cell_t* n = NULL;
+  
+  for(i = 0 ; i < neighbours->size ; i++){
+    n = neighbours->cells[i];
+  }
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
@@ -97,6 +160,8 @@ void worldLoop(int noOfGenerations){
     for(x = 0 ; x < worldSize ; x++){
       for(y = 0 ; y < worldSize ; y++){
 	cell = getCell(x, y);
+	cell->color = currentColor; //clear color for next sub-generation
+	
  	switch(cell->type){
 	  case EMPTY: break;
 	  case ICE: break;
