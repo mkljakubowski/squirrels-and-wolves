@@ -67,6 +67,7 @@ void loadWorld(FILE* file){
   char type;
   uint x, y, i;
   size_t len;
+  cell_t* cell;
   
   //init world array
   getline(&buf, &len, file);
@@ -85,7 +86,15 @@ void loadWorld(FILE* file){
   //init cells
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &x, &y, &type);
-    getCell(x, y)->type = type;
+    cell = getCell(x, y);
+    cell->type = type;
+    
+    if(type == TREE_WITH_SQUIRREL || type == SQUIRREL){
+      cell->breeding = 0;	//TODO
+    }else if(type == WOLVE){
+      cell->breeding = 0;	//TODO
+      cell->starvation = 0;	//TODO
+    }
   }
 }
 
@@ -129,14 +138,76 @@ neighbours_t* getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
 }
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
+void checkIfShouldDie(cell_t* who){
+  if(who->type == WOLVE && who->starvation == 0){
+    who->type = EMPTY;
+  }
+}
+
+//return who should stay on the current cell
+cell_habitant_t checkIfShouldBreed(cell_t* who){
+  if(who->type == WOLVE && who->breeding >= wolveBreedingPeriod)
+    return WOLVE;
+  if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod)
+    return SQUIRREL;
+  if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod)
+    return TREE_WITH_SQUIRREL;
+  if(who->type == TREE_WITH_SQUIRREL)
+    return TREE;
+  return EMPTY;
+}
+
+void eat(cell_t* wolve, cell_t* squirrel){
+  cell_habitant_t stays = checkIfShouldBreed(wolve);
+  *squirrel = *wolve; //wolve moves erasing squirrel
+  wolve->type = stays;
+  wolve->breeding = 0;		//TODO
+  wolve->starvation = 0;	//TODO
+}
+
+void move(cell_t* from, cell_t* to){
+  cell_habitant_t stays = checkIfShouldBreed(from); //this func checks what should stay on 'from' field
+  if(to->type == TREE){ //but it doesnt check what happens on 'to' field
+    *to = *from;
+    to->type = TREE_WITH_SQUIRREL;
+  }else{
+    *to = *from;
+  }
+  from->type = stays;
+  if(stays == TREE_WITH_SQUIRREL || stays == SQUIRREL){
+    from->breeding = 0;		//TODO
+  }else if(stays == WOLVE){
+    from->breeding = 0;		//TODO
+    from->starvation = 0;	//TODO
+  }
+}
+
 void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
   uint i = 0;
   cell_t* n = NULL;
   
+  //check for squirrel
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
+    if(n->type == SQUIRREL){
+      eat(cell, n);
+      return;
+    }
   }
+  
+  //look for empty place to move
+  for(i = 0 ; i < neighbours->size ; i++){
+    n = neighbours->cells[i];
+    if(n->type == EMPTY){
+      move(cell, n);
+      return;
+    }
+  }
+  
+  //if cant do anything
+  checkIfShouldDie(cell);
+  checkIfShouldBreed(cell);
 }
 
 void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
@@ -144,9 +215,17 @@ void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
   uint i = 0;
   cell_t* n = NULL;
   
+  //look for empty place to move
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
+    if(n->type == EMPTY || n->type == TREE){
+      move(cell, n);
+      return;
+    }
   }
+  
+  //if cant do anything
+  checkIfShouldBreed(cell);
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
