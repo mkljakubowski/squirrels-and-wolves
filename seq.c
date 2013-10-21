@@ -202,8 +202,8 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
       return;
     }
   }
-  
   //TODO: check for conflicts (if one of neighbours is of color 'color' and type SQUIRREL)
+  free(neighbours->cells);
 }
 
 void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
@@ -235,6 +235,7 @@ void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
 
   //if cant do anything
   checkIfShouldDie(cell);
+  free(neighbours->cells);
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
