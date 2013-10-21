@@ -9,5 +9,7 @@ wolves-squirrels-serial: wolves-squirrels-serial.c
 run: seq
 	./seq input 4 4 4 4
 
+gdb: seq
+	gdb --args ./seq input 4 4 4 4
 clean:
 	rm -f seq

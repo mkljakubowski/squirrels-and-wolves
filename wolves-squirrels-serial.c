@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
   uint wolfStarvationPeriod = atoi(argv[4]);
   uint numOfGenerations = atoi(argv[5]);
 
+  
   loadWorld(input);
   fclose(input);
   

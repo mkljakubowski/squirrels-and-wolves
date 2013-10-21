@@ -4,7 +4,7 @@
 
 /*
  CELL NUMBERING
- Cells are numbered as pixel on screen. Top left cell is (0,0), x grows to the right, y grows down.
+ Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
 */
 
 /* TYPES */
@@ -28,7 +28,7 @@ typedef struct neighbours_t {
 
 /* GLOBALS */
 cell_t* world = NULL;
-uint worldX = 0, worldY = 0;
+uint worldSideLen = 0;
 uint worldSize = 0;
 uint wolveBreedingPeriod = 0;
 uint squirrelBreedingPeriod = 0;
@@ -36,9 +36,9 @@ uint wolveStarvationPeriod = 0;
 
 /* FUNCTIONS */
 cell_t* getCell(uint x, uint y){
-  assert(x < worldX && x > 0);
-  assert(y < worldY && y > 0);
-  return &world[y * worldX + x];
+  assert(x < worldSideLen && x >= 0);
+  assert(y < worldSideLen && y >= 0);
+  return &world[y * worldSideLen + x];
 }
 
 cell_t* getCellAndCheckBoundries(uint x, uint y){
@@ -57,6 +57,8 @@ cell_habitant_t charToCellType(char c){
        return ICE;
     case 't':
        return TREE;
+    case '$':
+       return TREE_WITH_SQUIRREL;
     default :
        assert(0 == 1);
        return EMPTY;
@@ -72,10 +74,10 @@ void loadWorld(FILE* file){
   
   //init world array
   getline(&buf, &len, file);
-  sscanf(buf, "%d %d", &worldX, &worldY);
-  worldSize = worldX * worldY;
+  sscanf(buf, "%d", &worldSideLen);
+  worldSize = worldSideLen * worldSideLen;
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
-  
+ 
   //clear
   for(i = 0 ; i < worldSize ; i++){
     world[i].type = EMPTY;
@@ -88,13 +90,13 @@ void loadWorld(FILE* file){
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &x, &y, &type);
     cell = getCell(x, y);
-    cell->type = type;
+    cell->type = charToCellType(type);
     
     if(type == TREE_WITH_SQUIRREL || type == SQUIRREL){
-      cell->breeding = 0;	//TODO
+      cell->breeding = 0;
     }else if(type == WOLVE){
-      cell->breeding = 0;	//TODO
-      cell->starvation = 0;	//TODO
+      cell->breeding = 0;
+      cell->starvation = wolveStarvationPeriod;
     }
   }
 }
@@ -106,8 +108,10 @@ uint isRed(uint x, uint y){
 }
 
 cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
+  if(cell == NULL) return NULL;
   if(cell->type == ICE) return NULL;
-  if((cell->type == TREE || cell->type == TREE_WITH_SQUIRREL) && type == WOLVE) return NULL;
+  if(cell->type == TREE_WITH_SQUIRREL) return NULL;
+  if(cell->type == TREE && type == WOLVE) return NULL;
   return cell;
 }
 
@@ -160,10 +164,11 @@ cell_habitant_t checkIfShouldBreed(cell_t* who){
 
 void eat(cell_t* wolve, cell_t* squirrel){
   cell_habitant_t stays = checkIfShouldBreed(wolve);
+  wolve->starvation += wolveStarvationPeriod;
   *squirrel = *wolve; //wolve moves erasing squirrel
   wolve->type = stays;
-  wolve->breeding = 0;		//TODO
-  wolve->starvation = 0;	//TODO
+  wolve->breeding = 0;
+  wolve->starvation = wolveStarvationPeriod;
 }
 
 void move(cell_t* from, cell_t* to){
@@ -176,15 +181,33 @@ void move(cell_t* from, cell_t* to){
   }
   from->type = stays;
   if(stays == TREE_WITH_SQUIRREL || stays == SQUIRREL){
-    from->breeding = 0;		//TODO
+    from->breeding = 0;
   }else if(stays == WOLVE){
-    from->breeding = 0;		//TODO
-    from->starvation = 0;	//TODO
+    from->breeding = 0;
+    from->starvation = wolveStarvationPeriod;
   }
 }
 
 void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
+  uint i = 0;
+  cell_t* n = NULL;
+  
+  //look for empty place to move
+  for(i = 0 ; i < neighbours->size ; i++){
+    n = neighbours->cells[i];
+    if(n->type == EMPTY || n->type == TREE){
+      move(cell, n);
+      n->color = color;
+      return;
+    }
+  }
+  
+  //TODO: check for conflicts (if one of neighbours is of color 'color' and type SQUIRREL)
+}
+
+void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
+  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLVE);
   uint i = 0;
   cell_t* n = NULL;
   
@@ -208,32 +231,10 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
     }
   }
   
-  //TODO: check for conflicts (if one of neighbours is of color 'color' and type SQUIRREL)
-  
-  //if cant do anything
-  checkIfShouldDie(cell);
-  checkIfShouldBreed(cell);
-}
-
-void doWolveStuff(uint x, uint y, cell_t* cell, color_t color){
-  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLVE);
-  uint i = 0;
-  cell_t* n = NULL;
-  
-  //look for empty place to move
-  for(i = 0 ; i < neighbours->size ; i++){
-    n = neighbours->cells[i];
-    if(n->type == EMPTY || n->type == TREE){
-      move(cell, n);
-      n->color = color;
-      return;
-    }
-  }
-  
   //TODO: check for conflicts (if one of neighbours is of color 'color' and type WOLVE)
 
   //if cant do anything
-  checkIfShouldBreed(cell);
+  checkIfShouldDie(cell);
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
@@ -244,8 +245,8 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
   
   for(i = 0 ; i < 2* noOfGenerations ; i++){
-    for(x = 0 ; x < worldSize ; x++){
-      for(y = 0 ; y < worldSize ; y++){
+    for(x = 0 ; x < worldSideLen ; x++){
+      for(y = 0 ; y < worldSideLen ; y++){
 	cell = getCell(x, y);
 	cell->color = currentColor;	//clear color for next sub-generation
 	cell->starvation--;		//dont care whats inside
