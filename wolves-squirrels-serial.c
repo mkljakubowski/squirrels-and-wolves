@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
+#include <bool.h>
 /*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
@@ -278,7 +278,34 @@ void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
-
+void worldLoopEven(int noOfGenerations){ // World Loop for an even size Grid
+	
+	for(i = 0 ; i < noOfGenerations ; i++) {
+		for(x = 0 ; x < worldSideLen ; x+=2) { // Proceed only red (even) column
+			for(y = 0 ; y < worldSideLen ; y++) {
+				cell = getCell(x,y);
+				switch(cell->type){
+				case EMPTY: break;
+				case ICE: break;
+				case TREE: break;
+				case SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case TREE_WITH_SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case WOLF:
+				  doWolfStuff(x, y, cell, currentColor);
+				  break;
+			}
+		}
+		
+		for(x = 1 ; x < worldSideLen ; x+=2) { // Proceed only black (odd) column
+		
+		}
+	}
+	
+}
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
   color_t currentColor = RED;
