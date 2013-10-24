@@ -9,16 +9,10 @@
 /* TYPES */
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
-
-typedef enum color_t { TRANSPARENT, RED, BLACK } color_t;
-
-
 typedef unsigned int uint;
-
 
 typedef struct cell_t {
   cell_habitant_t type;	//who lives in this cell
-  color_t color; 	//when the cell was changed -> for resolving the confilcts
   uint starvation;	//starvation period if wolf
   uint breeding;	//breeding period of creature
 } cell_t;
@@ -110,7 +104,6 @@ void loadWorld(FILE* file){
   //clear
   for(i = 0 ; i < worldSize ; i++){
     world[i].type = EMPTY;
-    world[i].color = TRANSPARENT;
     world[i].starvation = 0;
     world[i].breeding = 0;
   }
@@ -225,7 +218,7 @@ void move(cell_t* from, cell_t* to){
 }
 
 
-void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
+void doSquirrelStuff(uint x, uint y, cell_t* cell){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
   uint i = 0;
   cell_t* n = NULL;
@@ -235,7 +228,6 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == EMPTY || n->type == TREE){
       move(cell, n);
-      n->color = color;
       return;
     }
   }
@@ -244,7 +236,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
 }
 
 
-void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
+void doWolfStuff(uint x, uint y, cell_t* cell){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLF);
   uint i = 0;
   cell_t* n = NULL;
@@ -254,7 +246,6 @@ void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == SQUIRREL){
       eat(cell, n);
-      n->color = color;
       return;
     }
   }
@@ -264,7 +255,6 @@ void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
     n = neighbours->cells[i];
     if(n->type == EMPTY){
       move(cell, n);
-      n->color = color;
       return;
     }
   }
@@ -279,7 +269,6 @@ void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
 
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
-  color_t currentColor = RED;
   uint x, y, i;
   cell_t* cell;
 
@@ -287,7 +276,6 @@ void worldLoop(int noOfGenerations){
     for(x = 0 ; x < worldSideLen ; x++){
       for(y = 0 ; y < worldSideLen ; y++){
 	cell = getCell(x, y);
-	cell->color = currentColor;	//clear color for next sub-generation
 	cell->starvation--;		//dont care whats inside
 	cell->breeding++;
  	switch(cell->type){
@@ -295,18 +283,17 @@ void worldLoop(int noOfGenerations){
 	case ICE: break;
 	case TREE: break;
 	case SQUIRREL:
-	  doSquirrelStuff(x, y, cell, currentColor);
+	  doSquirrelStuff(x, y, cell);
 	  break;
 	case TREE_WITH_SQUIRREL:
-	  doSquirrelStuff(x, y, cell, currentColor);
+	  doSquirrelStuff(x, y, cell);
 	  break;
 	case WOLF:
-	  doWolfStuff(x, y, cell, currentColor);
+	  doWolfStuff(x, y, cell);
 	  break;
 	}
       }
     }
-    currentColor = currentColor == RED ? BLACK : RED; //switch color of loop
   }
 }
 
