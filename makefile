@@ -1,15 +1,13 @@
-all: seq wolves-squirrels-serial
-
-seq: seq.c
-	gcc -o seq -g -Wall seq.c
+all: wolves-squirrels-serial
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
 	gcc -o wolves-squirrels-serial -g -Wall wolves-squirrels-serial.c
 
-run: seq
-	./seq input 4 4 4 4
+run: wolves-squirrels-serial
+	./wolves-squirrels-serial input 4 4 4 4
 
-gdb: seq
-	gdb --args ./seq input 4 4 4 4
+gdb: wolves-squirrels-serial
+	gdb --args ./wolves-squirrels-serial input 4 4 4 4
+
 clean:
-	rm -f seq
+	rm -f wolves-squirrels-serial
