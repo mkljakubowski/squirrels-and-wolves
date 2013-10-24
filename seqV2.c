@@ -16,12 +16,9 @@ typedef enum color_t { TRANSPARENT, RED, BLACK } color_t;
 
 typedef unsigned int uint;
 
-// list of animal who want to go to a cell
+// list of animal who want to go to a cell(4 possibility
 typedef struct updateList_t {
-	cell_t* up;
-	cell_t* down;
-	cell_t* right;
-	cell_t* left;
+	cell_t* bestCell;
 } updateList_t;
 
 
@@ -31,7 +28,7 @@ typedef struct cell_t {
   uint starvation;	//starvation period if wolf
   uint breeding;	//breeding period of creature
   bool hasMoved;
-  updateList_t updateList; 
+  updateList_t updateList;
 } cell_t;
 
 
@@ -241,14 +238,31 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
   cell_t* n = NULL;
 
+  // TODO : CHECK IF MUST BREED
+  
   //look for empty place to move
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == EMPTY || n->type == TREE){
-      move(cell, n);
-      n->hasMoved = true;
-      return;
+		
+		
+		if(n->updateList->bestCell->type == Empty) {
+			n->updateList->bestCell = cell;
+		}
+			
+		// if this squirrel is better than the best animal who want to go on cell n ; He goes on the update list.
+		else if((n->updateList->bestCell->type == SQUIRREL || n->updateList->bestCell->type == TREE_WITH_SQUIRRELSQUIRREL) &&
+			n->starvation >= n->updateList->bestCell->starvation) {
+				if(n->starvation == n->updateList->bestCell->starvation && n->breeding >= n->updateList->bestCell->breeding) {
+					n->updateList->bestCell = cell
+				}
+			return;
+			}
+		}
+
     }
+    
+    /*
     else if (n-> hasMoved) { // Conflict : In the same generation, another animal went in the case n
 		if(n->type == WOLF) {
 			return; // Wolve always win against squirrel
@@ -270,6 +284,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell, color_t color){
 		}
     }
   }
+  */
   free(neighbours->cells);
 }
 
@@ -278,35 +293,93 @@ void doWolfStuff(uint x, uint y, cell_t* cell, color_t color){
   neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLF);
   uint i = 0;
   cell_t* n = NULL;
+  
+  /* Death update */  
+  if(cell->starvation == 0) {
+	  cell->type = EMPTY;
+	  cell->breeding == 0;
+	  cell->starvation == 0;
+  }
+  
+  // TODO BREED UPDATE
 
   //check for squirrel
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == SQUIRREL){
-      eat(cell, n);
-      n->color = color;
+		if(n->updateList->bestCell->type == Empty) {
+			n->updateList->bestCell = cell;
+		}
+		/* We look if the wolve is the better animal who want to go on n */
+		else if(n->updateList->bestCell->type == SQUIRREL || 
+			(n->updateList->bestCell->type == WOLF && n->starvation >= n->updateList->bestCell->starvation)) {
+				if(n->starvation == n->updateList->bestCell->starvation && n->breeding >= n->updateList->bestCell->breeding) {
+					n->updateList->bestCell = cell
+				}
+		}
+	}
+				
+      //eat(cell, n);
+      //n->color = color;
       return;
-    }
   }
 
   //look for empty place to move
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == EMPTY){
-      move(cell, n);
-      n->color = color;
-      return;
+		if(n->updateList->bestCell->type == Empty) {
+			n->updateList->bestCell = cell;
+		}
+		else if(n->updateList->bestCell->type == SQUIRREL || 
+			(n->updateList->bestCell->type == WOLF && n->starvation >= n->updateList->bestCell->starvation)) {
+				if(n->starvation == n->updateList->bestCell->starvation && n->breeding >= n->updateList->bestCell->breeding) {
+					n->updateList->bestCell = cell
+				}
+		}
+		return;		
+      //move(cell, n);
+      //n->color = color;
+      //return;
     }
   }
 
   //TODO: check for conflicts (if one of neighbours is of color 'color' and type WOLF)
 
   //if cant do anything
-  checkIfShouldDie(cell);
+  //checkIfShouldDie(cell);
   free(neighbours->cells);
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
+
+/* Update the cell with the best animal and update the starvation and breeding period */
+void updateCells() {
+	for(x = 0 ; x < worldSideLen ; x++) {
+		for(y = 0 ; y < worldSideLen ; y++) {
+			cell = getCell(x,y);
+			if(cell->updateList->bestCell == EMPTY) {
+				break;
+			}
+			else {
+				cell->type = cell->updateList->bestCell->type;
+				cell->starvation = cell->updateList->bestCell->starvation - 1;
+				cell->breeding = cell->updateList->bestCell->breeding - 1;
+				
+				/* Update the bestCell for the next time */
+				cell->updateList->bestCell->type = EMPTY;
+				cell->updateList->bestCell->starvation = 0;
+				cell->updateList->bestCell->breeding = 0;
+			}
+		}
+	}
+	
+	
+
+
+				
+			
+			
 void worldLoopEven(int noOfGenerations){ // World Loop for an even size Grid
 	
 	for(i = 0 ; i < noOfGenerations ; i++) {
@@ -330,46 +403,75 @@ void worldLoopEven(int noOfGenerations){ // World Loop for an even size Grid
 		}
 		
 		for(x = 1 ; x < worldSideLen ; x+=2) { // Proceed only black (odd) column
-		
+			for(y = 0 ; y < worldSideLen ; y++) {
+				cell = getCell(x,y);
+				switch(cell->type){
+				case EMPTY: break;
+				case ICE: break;
+				case TREE: break;
+				case SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case TREE_WITH_SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case WOLF:
+				  doWolfStuff(x, y, cell, currentColor);
+				  break;
+			}
 		}
+		updateCells();
 	}
+	
+	
 	
 	// INIT hasMoved
 	
 }
-/* LOGIC LOOP */
-void worldLoop(int noOfGenerations){
-  color_t currentColor = RED;
-  uint x, y, i;
-  cell_t* cell;
 
-  for(i = 0 ; i < 2* noOfGenerations ; i++){
-    for(x = 0 ; x < worldSideLen ; x++){
-      for(y = 0 ; y < worldSideLen ; y++){
-	cell = getCell(x, y);
-	cell->color = currentColor;	//clear color for next sub-generation
-	cell->starvation--;		//dont care whats inside
-	cell->breeding++;
- 	switch(cell->type){
-	case EMPTY: break;
-	case ICE: break;
-	case TREE: break;
-	case SQUIRREL:
-	  doSquirrelStuff(x, y, cell, currentColor);
-	  break;
-	case TREE_WITH_SQUIRREL:
-	  doSquirrelStuff(x, y, cell, currentColor);
-	  break;
-	case WOLF:
-	  doWolfStuff(x, y, cell, currentColor);
-	  break;
+void worldLoopOdd(int noOfGenerations){ // World Loop for an odd size Grid
+	
+	for(i = 0 ; i < noOfGenerations ; i++) {
+		for(x = 1 ; x < worldSideLen ; x+=2) { // Proceed only red (odd) column
+			for(y = 0 ; y < worldSideLen ; y++) {
+				cell = getCell(x,y);
+				switch(cell->type){
+				case EMPTY: break;
+				case ICE: break;
+				case TREE: break;
+				case SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case TREE_WITH_SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case WOLF:
+				  doWolfStuff(x, y, cell, currentColor);
+				  break;
+			}
+		}
+		
+		for(x = 0 ; x < worldSideLen ; x+=2) { // Proceed only black (even) column
+			for(y = 0 ; y < worldSideLen ; y++) {
+				cell = getCell(x,y);
+				switch(cell->type){
+				case EMPTY: break;
+				case ICE: break;
+				case TREE: break;
+				case SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case TREE_WITH_SQUIRREL:
+				  doSquirrelStuff(x, y, cell, currentColor);
+				  break;
+				case WOLF:
+				  doWolfStuff(x, y, cell, currentColor);
+				  break;
+			}
+		}
+		updateCells();
 	}
-      }
-    }
-    currentColor = currentColor == RED ? BLACK : RED; //switch color of loop
-  }
 }
-
 
 /* PRINT WORLD IN STDOUT */
 void printWorld()
@@ -409,7 +511,14 @@ int main(int argc, char **argv){
   uint noOfGenerations = atoi(argv[5]);
 
   loadWorld(input);
-  worldLoop(noOfGenerations);
+  
+  if(worldSideLen % 2 == 0) {
+	  worldLoopEven(noOfGenerations);
+  }
+  else {
+	  worldLoopOdd(noOfGenerations);
+  }
+  
   printWorld();
   
   fclose(input);
