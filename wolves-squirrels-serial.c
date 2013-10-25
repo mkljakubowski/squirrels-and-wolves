@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
 /*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
@@ -82,6 +83,8 @@ char cellTypeTochar(cell_habitant_t type)
     return 't';
   case TREE_WITH_SQUIRREL:
     return '$';
+  case EMPTY:
+    return ' ';
   default:
     assert(0 == 1);
   }
@@ -267,12 +270,56 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
 }
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
+/* PRINT WORLD IN STDOUT IN 2D (FOR DEBUGGING PORPUSES) */
+void printWorld2d(FILE *stream)
+{
+  uint x, y, i, j = 0;
+  cell_t *cell;
+  fprintf(stream, "   ");
+  fflush(stream); /* force it to go out */
+  for (i = 0 ; i < worldSideLen ; i++){
+    fprintf(stream, " %d ", i);
+    fflush(stream); /* force it to go out */
+  }
+  fprintf(stream, "\n");
+  fflush(stream); /* force it to go out */
+  for(y = 0 ; y < worldSideLen ; y++){
+    fprintf(stream, " %d ", j++);
+    fflush(stream); /* force it to go out */
+    for(x = 0 ; x < worldSideLen ; x++){
+      cell = getCell(x, y);
+      fprintf(stream, " %c ", cellTypeTochar(cell->type));
+    }
+    fprintf(stream, "\n\n");
+    fflush(stream); /* force it to go out */
+  }
+  fprintf(stream, "\n\n");
+  fflush(stream); /* force it to go out */
+}
+
+
+void pressEntertoContinue(){
+  int c;
+  printf("Press <enter> to continue: ");
+  fflush(stdout);
+  while ((c = getchar()) != '\n' && c != EOF) {
+    /* nothing */
+  }
+}
+
+
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
   uint x, y, i;
   cell_t* cell;
 
   for(i = 0 ; i < 2* noOfGenerations ; i++){
+    fprintf(stdout, "Generation: %d\n", (i/2) + 1);
+    if(i % 2 == 0){
+      fprintf(stdout, "First subgeneration\n");
+	} else {
+      fprintf(stdout, "Second subgeneration\n");
+    }
     for(x = 0 ; x < worldSideLen ; x++){
       for(y = 0 ; y < worldSideLen ; y++){
 	cell = getCell(x, y);
@@ -294,6 +341,8 @@ void worldLoop(int noOfGenerations){
 	}
       }
     }
+    printWorld2d(stdout);
+    pressEntertoContinue();
   }
 }
 
@@ -311,6 +360,7 @@ void printWorld()
       cell = getCell(x, y);
       if (cell->type != EMPTY){
 	fprintf(stdout, "%d %d %c\n", x, y, cellTypeTochar(cell->type));
+	fflush(stdout);
       }
     }
   }
@@ -334,8 +384,11 @@ int main(int argc, char **argv){
   squirrelBreedingPeriod = atoi(argv[3]);
   wolfStarvationPeriod = atoi(argv[4]);
   uint noOfGenerations = atoi(argv[5]);
-
   loadWorld(input);
+  fprintf(stdout, "Initial world configuration after loading from file:\n");
+  fflush(stdout); /* force it to go out */
+  printWorld2d(stdout);
+  pressEntertoContinue();
   worldLoop(noOfGenerations);
   printWorld();
   
