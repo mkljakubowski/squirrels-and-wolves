@@ -50,25 +50,25 @@ cell_t* getCellAndCheckBoundries(uint x, uint y){
 
 cell_habitant_t charToCellType(char c){
   switch(c){
-    case 'w': return WOLF;
-    case 's': return SQUIRREL;
-    case 'i': return ICE;
-    case 't': return TREE;
-    case '$': return TREE_WITH_SQUIRREL;
-    default : assert(0 == 1); return EMPTY;
+  case 'w': return WOLF;
+  case 's': return SQUIRREL;
+  case 'i': return ICE;
+  case 't': return TREE;
+  case '$': return TREE_WITH_SQUIRREL;
+  default : assert(0 == 1); return EMPTY;
   }
 }
 
 char cellTypeTochar(cell_habitant_t type)
 {
   switch (type){
-    case WOLF: 			return 'w';
-    case SQUIRREL: 		return 's';
-    case ICE: 			return 'i';
-    case TREE: 			return 't';
-    case TREE_WITH_SQUIRREL: 	return '$';
-    case EMPTY: 		return ' ';
-    default: assert(0 == 1);
+  case WOLF: 			return 'w';
+  case SQUIRREL: 		return 's';
+  case ICE: 			return 'i';
+  case TREE: 			return 't';
+  case TREE_WITH_SQUIRREL: 	return '$';
+  case EMPTY: 		return ' ';
+  default: assert(0 == 1);
   }
 }
 
@@ -174,7 +174,7 @@ cell_habitant_t checkIfShouldBreed(cell_t* who){
 void copy(cell_t* from, cell_t* to){
   to->breeding = from->breeding;
   to->starvation = from->starvation;
-  to->type = from->type;  
+  to->type = from->type;
 }
 
 void eat(cell_t* wolf, cell_t* squirrel){
@@ -282,7 +282,7 @@ void update(cell_t* cell){
       move(cell->updates[i], cell);
     }
   }
-  
+
   //move wolves
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == WOLF){
@@ -294,7 +294,7 @@ void update(cell_t* cell){
       }
     }
   }
-  
+
   cell->updateSize = 0;
 }
 
@@ -347,7 +347,7 @@ void worldLoop(int noOfGenerations){
     fprintf(stdout, "Generation: %d\n", (i/2) + 1);
     if(i % 2 == 0){
       fprintf(stdout, "First subgeneration\n");
-	} else {
+    } else {
       fprintf(stdout, "Second subgeneration\n");
     }
     for(x = 0 ; x < worldSideLen ; x++){
@@ -424,7 +424,7 @@ int main(int argc, char **argv){
   pressEntertoContinue();
   worldLoop(noOfGenerations);
   printWorld();
-  
+
   fclose(input);
   return 0;
 }
