@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
 
 /*
   CELL NUMBERING
@@ -180,7 +181,7 @@ void copy(cell_t* from, cell_t* to){
 void eat(cell_t* wolf, cell_t* squirrel){
   cell_habitant_t stays = checkIfShouldBreed(wolf);
   wolf->starvation = wolfStarvationPeriod;
-  copy(wolf, squirrel);;
+  copy(wolf, squirrel);
   wolf->type = stays;
   wolf->breeding = 0;
   wolf->starvation = wolfStarvationPeriod;
@@ -190,7 +191,7 @@ void eat(cell_t* wolf, cell_t* squirrel){
 void move(cell_t* from, cell_t* to){
   cell_habitant_t stays = checkIfShouldBreed(from); //this func checks what should stay on 'from' field
   if(to->type == TREE){ //but it doesnt check what happens on 'to' field
-    copy(from, to);;
+    copy(from, to);
     to->type = TREE_WITH_SQUIRREL;
   }else if(to->type == WOLF){
     //conflict
@@ -204,13 +205,13 @@ void move(cell_t* from, cell_t* to){
 	from->starvation = to->starvation;
       }
     }
-    copy(from, to);;
+    copy(from, to);
   }else if(to->type == SQUIRREL || to->type == TREE_WITH_SQUIRREL){
     //conflict, pick stronger squirrel
     from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
-    copy(from, to);;
+    copy(from, to);
   }else{
-    copy(from, to);;
+    copy(from, to);
   }
   from->type = stays;
   if(stays == TREE_WITH_SQUIRREL || stays == SQUIRREL){
@@ -300,29 +301,39 @@ void update(cell_t* cell){
 
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
+void fputcn(FILE *stream, int c, size_t n)
+{
+  size_t x;
+  for(x = 0; x < n; x++)
+    fputc(c, stream);
+  fputc('\n', stream);
+}
+
 /* PRINT WORLD IN STDOUT IN 2D (FOR DEBUGGING PORPUSES) */
 void printWorld2d(FILE *stream)
 {
   uint x, y, i, j = 0;
   cell_t *cell;
+  fputcn(stream, '-', 3 * (1 +worldSideLen));
   fprintf(stream, "   ");
   fflush(stream); /* force it to go out */
   for (i = 0 ; i < worldSideLen ; i++){
-    fprintf(stream, " %d ", i);
+    fprintf(stream, "%02d|", i);
     fflush(stream); /* force it to go out */
   }
   fprintf(stream, "\n");
   fflush(stream); /* force it to go out */
   for(y = 0 ; y < worldSideLen ; y++){
-    fprintf(stream, " %d ", j++);
+    fprintf(stream, "%02d:", j++);
     fflush(stream); /* force it to go out */
     for(x = 0 ; x < worldSideLen ; x++){
       cell = getCell(x, y);
-      fprintf(stream, " %c ", cellTypeTochar(cell->type));
+      fprintf(stream, " %c|", toupper(cellTypeTochar(cell->type)));
     }
-    fprintf(stream, "\n\n");
+    fprintf(stream, "\n");
     fflush(stream); /* force it to go out */
   }
+  fputcn(stream, '-', 3 * (1 +worldSideLen));
   fprintf(stream, "\n\n");
   fflush(stream); /* force it to go out */
 }
@@ -344,11 +355,11 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
 
   for(i = 0 ; i < 2* noOfGenerations ; i++){
-    fprintf(stdout, "Generation: %d\n", (i/2) + 1);
+    fprintf(stdout, "Iteration %d ", (i/2) + 1);
     if(i % 2 == 0){
-      fprintf(stdout, "First subgeneration\n");
+      fprintf(stdout, "Red\n");
     } else {
-      fprintf(stdout, "Second subgeneration\n");
+      fprintf(stdout, "Black\n");
     }
     for(x = 0 ; x < worldSideLen ; x++){
       for(y = 0 ; y < worldSideLen ; y++){
