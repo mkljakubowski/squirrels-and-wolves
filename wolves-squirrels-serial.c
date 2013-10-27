@@ -97,7 +97,7 @@ void loadWorld(FILE* file){
   //init cells
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &x, &y, &type);
-    cell = getCell(x-1, y-1);
+    cell = getCell(x, y);
     cell->type = charToCellType(type);
 
     if(type == TREE_WITH_SQUIRREL || type == SQUIRREL){
