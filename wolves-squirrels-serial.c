@@ -40,7 +40,7 @@ cell_t* getCell(uint x, uint y){
   /* printf ("X: %d; Y: %d\n", x, y); */
   assert(x < worldSideLen && x >= 0);
   assert(y < worldSideLen && y >= 0);
-  return &world[x * worldSideLen + y];
+  return &world[y * worldSideLen + x];
 }
 
 cell_t* getCellAndCheckBoundries(uint x, uint y){
@@ -65,7 +65,7 @@ char cellTypeTochar(cell_habitant_t type)
   switch (type){
   case WOLF: 			return 'w';
   case SQUIRREL: 		return 's';
-  case ICE: 			return 'i';
+  case ICE: 			return 'x';
   case TREE: 			return 't';
   case TREE_WITH_SQUIRREL: 	return '$';
   case EMPTY: 		return ' ';
@@ -142,10 +142,10 @@ neighbours_t* getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   neighbours.size = size;
 
   uint pos = 0;
-  if(up != NULL) neighbours.cells[pos++] = up;
-  if(right != NULL) neighbours.cells[pos++] = right;
-  if(down != NULL) neighbours.cells[pos++] = down;
   if(left != NULL) neighbours.cells[pos++] = left;
+  if(down != NULL) neighbours.cells[pos++] = down;
+  if(right != NULL) neighbours.cells[pos++] = right;
+  if(up != NULL) neighbours.cells[pos++] = up;
 
   return &neighbours;
 }
@@ -232,8 +232,10 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == EMPTY || n->type == TREE){
-      n->updates[n->updateSize] = cell;
-      n->updateSize++;
+      printf("sq move\n");
+      cell->updates[cell->updateSize] = n;
+      cell->updateSize++;
+      free(neighbours->cells);
       return;
     }
   }
@@ -251,8 +253,9 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == SQUIRREL){
-      n->updates[n->updateSize] = cell;
-      n->updateSize++;
+      cell->updates[cell->updateSize] = n;
+      cell->updateSize++;
+      free(neighbours->cells);
       return;
     }
   }
@@ -261,8 +264,9 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours->size ; i++){
     n = neighbours->cells[i];
     if(n->type == EMPTY){
-      n->updates[n->updateSize] = cell;
-      n->updateSize++;
+      cell->updates[cell->updateSize] = n;
+      cell->updateSize++;
+      free(neighbours->cells);
       return;
     }
   }
@@ -272,10 +276,10 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   free(neighbours->cells);
 }
 
-//updates current cell and cells that want to do sth with this cell
+//updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   uint i, updates = cell->updateSize;
-  printf("%d\n",updates);
+  if(updates>0) printf("%d %d\n",updates, cell->type);
   //move squirrels
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL || cell->updates[i]->type == TREE_WITH_SQUIRREL){
@@ -327,7 +331,7 @@ void printWorld2d(FILE *stream)
     fprintf(stream, "%02d:", j++);
     fflush(stream); /* force it to go out */
     for(x = 0 ; x < worldSideLen ; x++){
-      cell = getCell(x, y);
+      cell = getCell(y, x);
       fprintf(stream, " %c|", toupper(cellTypeTochar(cell->type)));
     }
     fprintf(stream, "\n");
@@ -354,19 +358,18 @@ void worldLoop(int noOfGenerations){
   uint x, y, i;
   cell_t* cell;
 
-  for(i = 0 ; i < 2* noOfGenerations ; i++){
+  for(i = 0 ; i < 4 * noOfGenerations ; i++){
     fprintf(stdout, "Iteration %d ", (i/2) + 1);
-    if(i % 2 == 0){
+    if(i % 4 == 0 || i % 4 == 2){
       fprintf(stdout, "Red\n");
     } else {
       fprintf(stdout, "Black\n");
     }
     for(x = 0 ; x < worldSideLen ; x++){
       for(y = 0 ; y < worldSideLen ; y++){
-	if((i%2 == 0 && isRed(x, y)) || (i%2 == 1 && !isRed(x,y))){
+	if((i%4 == 0 && isRed(x, y)) || (i%4 == 2 && !isRed(x,y))){
 	  cell = getCell(x, y);
-	  update(cell);
-	  cell->starvation--;		//dont care whats inside
+	  cell->starvation--;
 	  cell->breeding++;
 	  switch(cell->type){
 	  case EMPTY: break;
@@ -382,6 +385,8 @@ void worldLoop(int noOfGenerations){
 	    doWolfStuff(x, y, cell);
 	    break;
 	  }
+	}else if(i%4 == 3 || i%4 == 1){
+	  update(cell);
 	}
       }
     }
