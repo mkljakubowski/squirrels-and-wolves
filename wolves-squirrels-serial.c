@@ -40,7 +40,7 @@ cell_t* getCell(uint x, uint y){
   /* printf ("X: %d; Y: %d\n", x, y); */
   assert(x < worldSideLen && x >= 0);
   assert(y < worldSideLen && y >= 0);
-  return &world[y * worldSideLen + x];
+  return &world[x * worldSideLen + y];
 }
 
 cell_t* getCellAndCheckBoundries(uint x, uint y){
