@@ -96,7 +96,7 @@ void loadWorld(FILE* file){
 
   //init cells
   while(getline(&buf, &len, file) != -1){
-    sscanf(buf, "%d %d %c", &x, &y, &type);
+    sscanf(buf, "%d %d %c", &y, &x, &type);
     cell = getCell(x, y);
     cell->type = charToCellType(type);
 
@@ -124,11 +124,11 @@ cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
 }
 
 //returns in correct order up -> right -> down -> left
-neighbours_t* getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
+neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   cell_t* up, *right, *down, *left;
-  up = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
+  up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
   right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
-  down = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
+  down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
   left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
 
   uint size = 0;
@@ -147,7 +147,7 @@ neighbours_t* getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   if(right != NULL) neighbours.cells[pos++] = right;
   if(up != NULL) neighbours.cells[pos++] = up;
 
-  return &neighbours;
+  return neighbours;
 }
 
 
@@ -224,57 +224,59 @@ void move(cell_t* from, cell_t* to){
 
 
 void doSquirrelStuff(uint x, uint y, cell_t* cell){
-  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
+  neighbours_t neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
   uint i = 0;
   cell_t* n = NULL;
 
   //look for empty place to move
-  for(i = 0 ; i < neighbours->size ; i++){
-    n = neighbours->cells[i];
+  for(i = 0 ; i < neighbours.size ; i++){
+    n = neighbours.cells[i];
     if(n->type == EMPTY || n->type == TREE){
       printf("sq move\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
-      free(neighbours->cells);
+      free(neighbours.cells);
       return;
     }
   }
-
-  free(neighbours->cells);
+  free(neighbours.cells);
 }
 
 
 void doWolfStuff(uint x, uint y, cell_t* cell){
-  neighbours_t* neighbours = getActiveCellsAroundFor(x, y, WOLF);
+  neighbours_t neighbours = getActiveCellsAroundFor(x, y, WOLF);
   uint i = 0;
   cell_t* n = NULL;
 
   //check for squirrel
-  for(i = 0 ; i < neighbours->size ; i++){
-    n = neighbours->cells[i];
+  for(i = 0 ; i < neighbours.size ; i++){
+    n = neighbours.cells[i];
     if(n->type == SQUIRREL){
+      printf("w eat sq\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
-      free(neighbours->cells);
+      free(neighbours.cells);
       return;
     }
   }
 
   //look for empty place to move
-  for(i = 0 ; i < neighbours->size ; i++){
-    n = neighbours->cells[i];
+  for(i = 0 ; i < neighbours.size ; i++){
+    n = neighbours.cells[i];
     if(n->type == EMPTY){
+      printf("w move\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
-      free(neighbours->cells);
+      free(neighbours.cells);
       return;
     }
   }
 
-  //if cant do anything
+  //if can't do anything
   checkIfShouldDie(cell);
-  free(neighbours->cells);
+  free(neighbours.cells);
 }
+
 
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
@@ -331,7 +333,7 @@ void printWorld2d(FILE *stream)
     fprintf(stream, "%02d:", j++);
     fflush(stream); /* force it to go out */
     for(x = 0 ; x < worldSideLen ; x++){
-      cell = getCell(y, x);
+      cell = getCell(x, y);
       fprintf(stream, " %c|", toupper(cellTypeTochar(cell->type)));
     }
     fprintf(stream, "\n");
@@ -359,8 +361,8 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
 
   for(i = 0 ; i < 4 * noOfGenerations ; i++){
-    fprintf(stdout, "Iteration %d ", (i/2) + 1);
-    if(i % 4 == 0 || i % 4 == 2){
+    fprintf(stdout, "Iteration %d ", (i/4) + 1);
+    if(i % 4 == 0 || i % 4 == 1){
       fprintf(stdout, "Red\n");
     } else {
       fprintf(stdout, "Black\n");
