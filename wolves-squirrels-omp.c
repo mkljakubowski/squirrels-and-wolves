@@ -338,7 +338,7 @@ void printWorld2d(FILE *stream)
     fflush(stream); /* force it to go out */
     for(x = 0 ; x < worldSideLen ; x++){
       cell = getCell(x, y);
-      fprintf(stream, " %c|", toupper(cellTypeTochar(cell->type)));
+      fprintf(stream, " %c|", (char)toupper((int)cellTypeTochar(cell->type)));
     }
     fprintf(stream, "\n");
     fflush(stream); /* force it to go out */
