@@ -6,11 +6,14 @@ wolves-squirrels-serial: wolves-squirrels-serial.c
 wolves-squirrels-omp: wolves-squirrels-omp.c
 	gcc -o wolves-squirrels-omp -g -Wall -fopenmp wolves-squirrels-omp.c
 
-run: wolves-squirrels-serial
+run-serial: wolves-squirrels-serial
 	./wolves-squirrels-serial input 4 4 4 4
 
-run2: wolves-squirrels-serial
+run-serial2: wolves-squirrels-serial
 	./wolves-squirrels-serial ex3.in 3 4 4 4
+
+run-omp: wolves-squirrels-omp
+	./wolves-squirrels-omp exBig.in 3 4 4 4
 
 gdb: wolves-squirrels-serial
 	gdb --args ./wolves-squirrels-serial ex3.in 3 4 4 4

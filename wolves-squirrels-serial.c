@@ -232,7 +232,11 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY || n->type == TREE){
-      printf("sq move\n");
+      if(n->type == TREE) {
+	printf("Squirrel climbs tree\n");
+      } else {
+	printf("Squirrel moves\n");
+      }
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -252,7 +256,7 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == SQUIRREL){
-      printf("w eat sq\n");
+      printf("Wolf eat squirrel\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -264,7 +268,7 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY){
-      printf("w move\n");
+      printf("Wolf moves\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -367,9 +371,9 @@ void worldLoop(int noOfGenerations){
     } else {
       fprintf(stdout, "Black\n");
     }
-    for(x = 0 ; x < worldSideLen ; x++){
-      for(y = 0 ; y < worldSideLen ; y++){
-	if((i%4 == 0 && isRed(x, y)) || (i%4 == 2 && !isRed(x,y))){
+    for(y = 0 ; y < worldSideLen ; y++){
+      for(x = 0 ; x < worldSideLen ; x++){
+	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
 	  cell = getCell(x, y);
 	  cell->starvation--;
 	  cell->breeding++;
@@ -387,7 +391,7 @@ void worldLoop(int noOfGenerations){
 	    doWolfStuff(x, y, cell);
 	    break;
 	  }
-	}else if(i%4 == 3 || i%4 == 1){
+	} else {
 	  update(cell);
 	}
       }
