@@ -90,7 +90,7 @@ void loadWorld(FILE* file){
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
   //clear
-  #pragma omp parallel for private(i)
+#pragma omp parallel for private(i)
   for(i = 0 ; i < worldSize ; i++){
     world[i].type = EMPTY;
     world[i].starvation = 0;
@@ -365,81 +365,81 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
   
   for(i = 0 ; i < noOfGenerations ; i++) {
-	  fprintf(stdout, "Iteration %d \n", i);
+    fprintf(stdout, "Iteration %d \n", i);
 	  
-	  #pragma omp parallel
-	  {
-	   // Red generation section
-		  fprintf(stdout, "Red generation \n");
-		  #pragma omp for private(x,y,cell) nowait
-		  for(x = 0 ; x < worldSideLen ; x = x+2) {
-			  for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x, y);
-				  cell->starvation--;
-				  cell->breeding++;
-				  switch(cell->type){
-				  case EMPTY: break;
-				  case ICE: break;
-				  case TREE: break;
-				  case SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case TREE_WITH_SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case WOLF:
-					doWolfStuff(x, y, cell);
-					break;
-				  }
-			  }
-		  }
-
-
-		  // Black generation section
-		  fprintf(stdout, "Black generation \n");
-		  #pragma omp for private(x,y,cell)
-		  for(x = 1 ; x < worldSideLen ; x = x+2) {
-			  for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x, y);
-				  cell->starvation--;
-				  cell->breeding++;
-				  switch(cell->type){
-				  case EMPTY: break;
-				  case ICE: break;
-				  case TREE: break;
-				  case SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case TREE_WITH_SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case WOLF:
-					doWolfStuff(x, y, cell);
-					break;
-				  }
-			  }
-		  }
-
-	  #pragma omp for private(x,y,cell)
-	  for(x = 0 ; x < worldSideLen ; x = x+2) {
-		  for(y = 0 ; y < worldSideLen ; y++) {
-			  cell = getCell(x,y);
-			  update(cell);
-		  }
-	  }
-	  // #pragma omp barrier // We must wait the update of the red generation
-	  #pragma omp for private(x,y,cell)
-	  for(x = 1 ; x < worldSideLen ; x = x+2) {
-		  for(y = 0 ; y < worldSideLen ; y++) {
-			  cell = getCell(x,y);
-			  update(cell);
-		  }
+#pragma omp parallel
+    {
+      // Red generation section
+      fprintf(stdout, "Red generation \n");
+#pragma omp for private(x,y,cell) nowait
+      for(x = 0 ; x < worldSideLen ; x = x+2) {
+	for(y = 0 ; y < worldSideLen ; y++) {
+	  cell = getCell(x, y);
+	  cell->starvation--;
+	  cell->breeding++;
+	  switch(cell->type){
+	  case EMPTY: break;
+	  case ICE: break;
+	  case TREE: break;
+	  case SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case TREE_WITH_SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case WOLF:
+	    doWolfStuff(x, y, cell);
+	    break;
 	  }
 	}
+      }
+
+
+      // Black generation section
+      fprintf(stdout, "Black generation \n");
+#pragma omp for private(x,y,cell)
+      for(x = 1 ; x < worldSideLen ; x = x+2) {
+	for(y = 0 ; y < worldSideLen ; y++) {
+	  cell = getCell(x, y);
+	  cell->starvation--;
+	  cell->breeding++;
+	  switch(cell->type){
+	  case EMPTY: break;
+	  case ICE: break;
+	  case TREE: break;
+	  case SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case TREE_WITH_SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case WOLF:
+	    doWolfStuff(x, y, cell);
+	    break;
+	  }
+	}
+      }
+
+#pragma omp for private(x,y,cell)
+      for(x = 0 ; x < worldSideLen ; x = x+2) {
+	for(y = 0 ; y < worldSideLen ; y++) {
+	  cell = getCell(x,y);
+	  update(cell);
+	}
+      }
+      // #pragma omp barrier // We must wait the update of the red generation
+#pragma omp for private(x,y,cell)
+      for(x = 1 ; x < worldSideLen ; x = x+2) {
+	for(y = 0 ; y < worldSideLen ; y++) {
+	  cell = getCell(x,y);
+	  update(cell);
+	}
+      }
+    }
     //printWorld2d(stdout);
     //pressEntertoContinue();	  
 
- }
+  }
 }
  
 
@@ -454,7 +454,7 @@ void printWorld()
   fflush(stdout); /* force it to go out */
   
   // No need of data sharing here : Distribute thread on the row (not on column cause of cache).
-  #pragma omp parallel for private(x,y,cell)
+#pragma omp parallel for private(x,y,cell)
   for(x = 0 ; x < worldSideLen ; x++){
     for(y = 0 ; y < worldSideLen ; y++){
       cell = getCell(x, y);
