@@ -236,7 +236,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY || n->type == TREE){
-      printf("sq move\n");
+      //printf("sq move\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -256,7 +256,7 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == SQUIRREL){
-      printf("w eat sq\n");
+      //printf("w eat sq\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -268,7 +268,7 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY){
-      printf("w move\n");
+      //printf("w move\n");
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -285,11 +285,11 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   uint i, updates = cell->updateSize;
-  if(updates>0) printf("%d %d\n",updates, cell->type);
+  //if(updates>0) printf("%d %d\n",updates, cell->type);
   //move squirrels
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL || cell->updates[i]->type == TREE_WITH_SQUIRREL){
-      printf("s\n");
+      //printf("s\n");
       move(cell->updates[i], cell);
     }
   }
@@ -297,7 +297,7 @@ void update(cell_t* cell){
   //move wolves
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == WOLF){
-      printf("w\n");
+      //printf("w\n");
       if(cell->type == SQUIRREL){
 	eat(cell->updates[i], cell);
       }else{
@@ -365,13 +365,13 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
   
   for(i = 0 ; i < noOfGenerations ; i++) {
-	  fprintf(stdout, "Iteration %d \n", i);
+	  //fprintf(stdout, "Iteration %d \n", i);
 	  
 	  #pragma omp parallel
 	  {
 	   // Red generation section
-		  fprintf(stdout, "Red generation \n");
-		  #pragma omp for private(x,y,cell) nowait
+		  //fprintf(stdout, "Red generation \n");
+		  #pragma omp for private(x,y,cell) 
 		  for(x = 0 ; x < worldSideLen ; x = x+2) {
 			  for(y = 0 ; y < worldSideLen ; y++) {
 				  cell = getCell(x, y);
@@ -393,10 +393,18 @@ void worldLoop(int noOfGenerations){
 				  }
 			  }
 		  }
-
+		  
+		  /*---- Synchronization point ----- */
+		  #pragma omp for private(x,y,cell) nowait
+		  for(x = 0 ; x < worldSideLen ; x = x+2) {
+			  for(y = 0 ; y < worldSideLen ; y++) {
+				  cell = getCell(x,y);
+				  update(cell);
+			  }
+		  }
 
 		  // Black generation section
-		  fprintf(stdout, "Black generation \n");
+		  //fprintf(stdout, "Black generation \n");
 		  #pragma omp for private(x,y,cell)
 		  for(x = 1 ; x < worldSideLen ; x = x+2) {
 			  for(y = 0 ; y < worldSideLen ; y++) {
@@ -420,15 +428,9 @@ void worldLoop(int noOfGenerations){
 			  }
 		  }
 
-	  #pragma omp for private(x,y,cell)
-	  for(x = 0 ; x < worldSideLen ; x = x+2) {
-		  for(y = 0 ; y < worldSideLen ; y++) {
-			  cell = getCell(x,y);
-			  update(cell);
-		  }
-	  }
-	  // #pragma omp barrier // We must wait the update of the red generation
-	  #pragma omp for private(x,y,cell)
+
+	  /*---- Synchronization point ----- */
+	  #pragma omp for private(x,y,cell) nowait
 	  for(x = 1 ; x < worldSideLen ; x = x+2) {
 		  for(y = 0 ; y < worldSideLen ; y++) {
 			  cell = getCell(x,y);
