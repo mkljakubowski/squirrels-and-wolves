@@ -18,5 +18,9 @@ run-omp: wolves-squirrels-omp
 gdb: wolves-squirrels-serial
 	gdb --args ./wolves-squirrels-serial ex3.in 10 10 10 10
 
+time: all
+	time ./wolves-squirrels-serial ex3.in 4 4 4 4
+	time ./wolves-squirrels-omp ex3.in 4 4 4 4
+
 clean:
 	rm -f wolves-squirrels-serial wolves-squirrels-omp
