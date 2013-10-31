@@ -222,7 +222,6 @@ void move(cell_t* from, cell_t* to){
   }
 }
 
-
 void doSquirrelStuff(uint x, uint y, cell_t* cell){
   neighbours_t neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
   uint i = 0;
@@ -232,11 +231,6 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY || n->type == TREE){
-      if(n->type == TREE) {
-	printf("Squirrel climbs tree\n");
-      } else {
-	printf("Squirrel moves\n");
-      }
       cell->updates[cell->updateSize] = n;
       cell->updateSize++;
       free(neighbours.cells);
@@ -245,7 +239,6 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   }
   free(neighbours.cells);
 }
-
 
 void doWolfStuff(uint x, uint y, cell_t* cell){
   neighbours_t neighbours = getActiveCellsAroundFor(x, y, WOLF);
@@ -256,9 +249,8 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == SQUIRREL){
-      printf("Wolf eat squirrel\n");
       cell->updates[cell->updateSize] = n;
-      cell->updateSize++;
+      ++cell->updateSize;
       free(neighbours.cells);
       return;
     }
@@ -268,9 +260,8 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   for(i = 0 ; i < neighbours.size ; i++){
     n = neighbours.cells[i];
     if(n->type == EMPTY){
-      printf("Wolf moves\n");
       cell->updates[cell->updateSize] = n;
-      cell->updateSize++;
+      ++cell->updateSize;
       free(neighbours.cells);
       return;
     }
@@ -281,14 +272,13 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
   free(neighbours.cells);
 }
 
-
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   uint i, updates = cell->updateSize;
-  if(updates>0) printf("%d %d\n",updates, cell->type);
-  //move squirrels
+  if(updates>0) printf("%d %c\n",updates, cellTypeTochar(cell->type));
+  //move if it is simple
   for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == SQUIRREL || cell->updates[i]->type == TREE_WITH_SQUIRREL){
+    if(cell->updates[i]->type == TREE || cell->updates[i]->type == EMPTY || cell->updates[i]->type == SQUIRREL){
       printf("s\n");
       move(cell->updates[i], cell);
     }
