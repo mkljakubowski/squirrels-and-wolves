@@ -338,12 +338,10 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
 
   for(i = 0 ; i < 4 * noOfGenerations ; i++){
-    fprintf(stdout, "Iteration %d ", (i/4) + 1);
-    if(i % 4 == 0 || i % 4 == 3){
-      fprintf(stdout, "Red\n");
-    } else {
-      fprintf(stdout, "Black\n");
-    }
+    if(i % 4 == 1)
+      fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
+    if(i % 4 == 3)
+      fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
@@ -369,8 +367,9 @@ void worldLoop(int noOfGenerations){
 	}
       }
     }
+    if (i%4==1 || i%4==3)
     printWorld2d(stdout);
-    pressEntertoContinue();
+    /* pressEntertoContinue(); */
   }
 }
 
@@ -413,7 +412,7 @@ int main(int argc, char **argv){
   fprintf(stdout, "Initial world configuration after loading from file:\n");
   fflush(stdout); /* force it to go out */
   printWorld2d(stdout);
-  pressEntertoContinue();
+  /* pressEntertoContinue(); */
   worldLoop(noOfGenerations);
   printWorld();
 
