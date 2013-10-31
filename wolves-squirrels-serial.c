@@ -60,15 +60,14 @@ cell_habitant_t charToCellType(char c){
   }
 }
 
-char cellTypeTochar(cell_habitant_t type)
-{
+char cellTypeTochar(cell_habitant_t type){
   switch (type){
   case WOLF: 			return 'w';
   case SQUIRREL: 		return 's';
   case ICE: 			return 'x';
   case TREE: 			return 't';
   case TREE_WITH_SQUIRREL: 	return '$';
-  case EMPTY: 		return ' ';
+  case EMPTY: 			return ' ';
   default: assert(0 == 1);
   }
 }
@@ -142,14 +141,13 @@ neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   neighbours.size = size;
 
   uint pos = 0;
-  if(left != NULL) neighbours.cells[pos++] = left;
   if(down != NULL) neighbours.cells[pos++] = down;
   if(right != NULL) neighbours.cells[pos++] = right;
   if(up != NULL) neighbours.cells[pos++] = up;
+  if(left != NULL) neighbours.cells[pos++] = left;
 
   return neighbours;
 }
-
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
 void checkIfShouldDie(cell_t* who){
@@ -158,17 +156,20 @@ void checkIfShouldDie(cell_t* who){
   }
 }
 
-
 //return who should stay on the current cell
 cell_habitant_t checkIfShouldBreed(cell_t* who){
-  if(who->type == WOLF && who->breeding >= wolfBreedingPeriod)
+  if(who->type == WOLF && who->breeding >= wolfBreedingPeriod){
+    who->breeding = 0;
     return WOLF;
-  if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod)
+  }else if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+    who->breeding = 0;
     return SQUIRREL;
-  if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod)
+  }else if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+    who->breeding = 0;
     return TREE_WITH_SQUIRREL;
-  if(who->type == TREE_WITH_SQUIRREL)
+  }else if(who->type == TREE_WITH_SQUIRREL){
     return TREE;
+  }
   return EMPTY;
 }
 
@@ -193,19 +194,23 @@ void move(cell_t* from, cell_t* to){
   if(to->type == TREE){ //but it doesnt check what happens on 'to' field
     copy(from, to);
     to->type = TREE_WITH_SQUIRREL;
-  }else if(to->type == WOLF){
-    //conflict
-    if(from->starvation == to->starvation){
-      from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
-    }else{
-      if(from->starvation > to->starvation){
-	//do nothing from is a stronger wolf -> it will be the one to get copied
-      }else{
-	from->breeding = to->breeding;
-	from->starvation = to->starvation;
-      }
-    }
+  }else if(from->type == TREE_WITH_SQUIRREL && to->type == EMPTY){
     copy(from, to);
+    to->type = SQUIRREL;
+  }else if(to->type == WOLF){
+    if(from->type == WOLF){    //conflict
+      if(from->starvation == to->starvation){
+	from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
+      }else{
+	if(from->starvation > to->starvation){
+	  //do nothing from is a stronger wolf -> it will be the one to get copied
+	}else{
+	  from->breeding = to->breeding;
+	  from->starvation = to->starvation;
+	}
+      }
+      copy(from, to);
+    }
   }else if(to->type == SQUIRREL || to->type == TREE_WITH_SQUIRREL){
     //conflict, pick stronger squirrel
     from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
@@ -213,6 +218,7 @@ void move(cell_t* from, cell_t* to){
   }else{
     copy(from, to);
   }
+  
   from->type = stays;
   if(stays == TREE_WITH_SQUIRREL || stays == SQUIRREL){
     from->breeding = 0;
@@ -275,34 +281,21 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   uint i, updates = cell->updateSize;
-  if(updates>0) printf("%d %c\n",updates, cellTypeTochar(cell->type));
-  //move if it is simple
+
   for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == TREE || cell->updates[i]->type == EMPTY || cell->updates[i]->type == SQUIRREL){
-      printf("s\n");
-      move(cell->updates[i], cell);
+    if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
+      eat(cell, cell->updates[i]); //if wolf->squirrel then eat
+    }else{
+      move(cell, cell->updates[i]); //else move
     }
   }
-
-  //move wolves
-  for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == WOLF){
-      printf("w\n");
-      if(cell->type == SQUIRREL){
-	eat(cell->updates[i], cell);
-      }else{
-	move(cell->updates[i], cell);
-      }
-    }
-  }
-
+    
   cell->updateSize = 0;
 }
 
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
-void fputcn(FILE *stream, int c, size_t n)
-{
+void fputcn(FILE *stream, int c, size_t n){
   size_t x;
   for(x = 0; x < n; x++)
     fputc(c, stream);
@@ -310,8 +303,7 @@ void fputcn(FILE *stream, int c, size_t n)
 }
 
 /* PRINT WORLD IN STDOUT IN 2D (FOR DEBUGGING PORPUSES) */
-void printWorld2d(FILE *stream)
-{
+void printWorld2d(FILE *stream){
   uint x, y, i, j = 0;
   cell_t *cell;
   fputcn(stream, '-', 3 * (1 +worldSideLen));
@@ -338,16 +330,14 @@ void printWorld2d(FILE *stream)
   fflush(stream); /* force it to go out */
 }
 
-
 void pressEntertoContinue(){
   int c;
   printf("Press <enter> to continue: ");
   fflush(stdout);
   while ((c = getchar()) != '\n' && c != EOF) {
-    /* nothing */
+    /* nothing */;
   }
 }
-
 
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
@@ -391,10 +381,8 @@ void worldLoop(int noOfGenerations){
   }
 }
 
-
 /* PRINT WORLD IN STDOUT */
-void printWorld()
-{
+void printWorld(){
   uint x, y;
   cell_t* cell;
 
@@ -410,7 +398,6 @@ void printWorld()
     }
   }
 }
-
 
 /* MAIN */
 int main(int argc, char **argv){
