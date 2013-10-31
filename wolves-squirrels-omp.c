@@ -11,7 +11,7 @@
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
 */
 
-/*TYPE*/
+/* TYPES */
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
 typedef struct cell_t {
@@ -72,10 +72,11 @@ char cellTypeTochar(cell_habitant_t type){
   default: assert(0 == 1);
   }
 }
+
 void loadWorld(FILE* file){
   char* buf = NULL;
   char type;
-  uint x, y, i;
+  int x, y, i;
   size_t len;
   cell_t* cell;
 
@@ -294,7 +295,6 @@ void update(cell_t* cell){
   cell->updateSize = 0;
 }
 
-
 /* =============================================== CELL BEHAVIOURS END =============================================== */
 
 void fputcn(FILE *stream, int c, size_t n)
@@ -308,7 +308,7 @@ void fputcn(FILE *stream, int c, size_t n)
 /* PRINT WORLD IN STDOUT IN 2D (FOR DEBUGGING PORPUSES) */
 void printWorld2d(FILE *stream)
 {
-  uint x, y, i, j = 0;
+  int x, y, i, j = 0;
   cell_t *cell;
   fputcn(stream, '-', 3 * (1 +worldSideLen));
   fprintf(stream, "   ");
@@ -347,11 +347,11 @@ void pressEntertoContinue(){
 
 /* LOGIC LOOP */
 void worldLoop(int noOfGenerations){
-  uint x, y, i;
+  int x, y, i;
   cell_t* cell;
   
-  for(i = 1 ; i <= noOfGenerations ; i++) {
-	  fprintf(stdout, "Iteration %d \n", i);
+  for(i = 0 ; i < noOfGenerations ; i++) {
+	  fprintf(stdout, "Iteration %d \n", i+1);
 	  
 	  #pragma omp parallel
 	  {
@@ -396,8 +396,6 @@ void worldLoop(int noOfGenerations){
 		  for(x = 1 ; x < worldSideLen ; x = x+2) {
 			  for(y = 0 ; y < worldSideLen ; y++) {
 				  cell = getCell(x, y);
-				  cell->starvation--;
-				  cell->breeding++;
 				  switch(cell->type){
 				  case EMPTY: break;
 				  case ICE: break;
@@ -424,7 +422,7 @@ void worldLoop(int noOfGenerations){
     }
     //#pragma omp single 
     //{
-	//	printWorld2d(stdout);
+		printWorld2d(stdout);
 		//pressEntertoContinue();	  
 	//}
 
@@ -436,7 +434,7 @@ void worldLoop(int noOfGenerations){
 /* PRINT WORLD IN STDOUT */
 void printWorld()
 {
-  uint x, y;
+  int x, y;
   cell_t* cell;
 
   fprintf(stdout, "%d\n", worldSideLen);
@@ -474,11 +472,11 @@ int main(int argc, char **argv){
   wolfBreedingPeriod = atoi(argv[2]);
   squirrelBreedingPeriod = atoi(argv[3]);
   wolfStarvationPeriod = atoi(argv[4]);
-  uint noOfGenerations = atoi(argv[5]);
+  int noOfGenerations = atoi(argv[5]);
   loadWorld(input);
   fprintf(stdout, "Initial world configuration after loading from file:\n");
   fflush(stdout); /* force it to go out */
-  //printWorld2d(stdout);
+  printWorld2d(stdout);
   //pressEntertoContinue();
   worldLoop(noOfGenerations);
   printWorld();
