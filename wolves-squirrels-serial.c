@@ -141,10 +141,10 @@ neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   neighbours.size = size;
 
   uint pos = 0;
-  if(left != NULL) neighbours.cells[pos++] = left;
   if(down != NULL) neighbours.cells[pos++] = down;
   if(right != NULL) neighbours.cells[pos++] = right;
   if(up != NULL) neighbours.cells[pos++] = up;
+  if(left != NULL) neighbours.cells[pos++] = left;
 
   return neighbours;
 }
