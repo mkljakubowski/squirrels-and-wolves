@@ -10,7 +10,7 @@ run-serial: wolves-squirrels-serial
 	./wolves-squirrels-serial input 4 4 4 4
 
 run-serial2: wolves-squirrels-serial
-	./wolves-squirrels-serial ex3.in 10 10 10 10
+	./wolves-squirrels-serial ex3.in 3 4 4 4
 
 run-omp: wolves-squirrels-omp
 	./wolves-squirrels-omp exBig.in 3 4 4 4

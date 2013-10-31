@@ -345,9 +345,11 @@ void worldLoop(int noOfGenerations){
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
-	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
+	if(i % 4 == 0){
 	  cell->starvation--;
-	  cell->breeding++;
+	  cell->breeding++;	  
+	}	
+	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
 	  switch(cell->type){
 	  case EMPTY: break;
 	  case ICE: break;
