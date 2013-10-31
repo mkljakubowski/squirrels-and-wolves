@@ -369,8 +369,8 @@ void worldLoop(int noOfGenerations){
 	}
       }
     }
-    if (i%4==1 || i%4==3)
-    printWorld2d(stdout);
+    //if (i%4==1 || i%4==3)
+    //printWorld2d(stdout);
     /* pressEntertoContinue(); */
   }
 }
@@ -416,7 +416,7 @@ int main(int argc, char **argv){
   printWorld2d(stdout);
   /* pressEntertoContinue(); */
   worldLoop(noOfGenerations);
-  printWorld();
+  //printWorld();
 
   fclose(input);
   return 0;
