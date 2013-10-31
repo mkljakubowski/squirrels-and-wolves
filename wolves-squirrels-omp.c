@@ -382,12 +382,12 @@ void worldLoop(int noOfGenerations){
 		  }
 		  
 		  #pragma omp for private(x,y,cell)
-      for(x = 0 ; x < worldSideLen ; x = x+2) {
-	for(y = 0 ; y < worldSideLen ; y++) {
-	  cell = getCell(x,y);
-	  update(cell);
-	}
-      }
+		  for(x = 0 ; x < worldSideLen ; x = x+2) {
+			for(y = 0 ; y < worldSideLen ; y++) {
+			  cell = getCell(x,y);
+			  update(cell);
+			}
+		  }
 
 		  // Black generation section
 		  #pragma omp single
@@ -416,13 +416,13 @@ void worldLoop(int noOfGenerations){
 		  }
 
       // #pragma omp barrier // We must wait the update of the red generation
-#pragma omp for private(x,y,cell)
-      for(x = 1 ; x < worldSideLen ; x = x+2) {
-	for(y = 0 ; y < worldSideLen ; y++) {
-	  cell = getCell(x,y);
-	  update(cell);
-	}
-      }
+		#pragma omp for private(x,y,cell)
+			  for(x = 1 ; x < worldSideLen ; x = x+2) {
+				for(y = 0 ; y < worldSideLen ; y++) {
+				  cell = getCell(x,y);
+				  update(cell);
+				}
+			  }
     }
     #pragma omp single 
     {
