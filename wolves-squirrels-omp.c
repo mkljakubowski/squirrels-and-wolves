@@ -354,12 +354,13 @@ void worldLoop(int noOfGenerations){
   uint x, y, i;
   cell_t* cell;
   
-  for(i = 0 ; i < noOfGenerations ; i++) {
+  for(i = 1 ; i <= noOfGenerations ; i++) {
 	  fprintf(stdout, "Iteration %d \n", i);
 	  
 	  #pragma omp parallel
 	  {
 	   // Red generation section
+		  #pragma omp single
 		  fprintf(stdout, "Red generation \n");
 		  #pragma omp for private(x,y,cell) 
 		  for(x = 0 ; x < worldSideLen ; x = x+2) {
@@ -384,16 +385,16 @@ void worldLoop(int noOfGenerations){
 			  }
 		  }
 		  
-		  /*---- Synchronization point ----- */
-		  #pragma omp for private(x,y,cell) nowait
-		  for(x = 0 ; x < worldSideLen ; x = x+2) {
-			  for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x,y);
-				  update(cell);
-			  }
-		  }
+		  #pragma omp for private(x,y,cell)
+      for(x = 0 ; x < worldSideLen ; x = x+2) {
+	for(y = 0 ; y < worldSideLen ; y++) {
+	  cell = getCell(x,y);
+	  update(cell);
+	}
+      }
 
 		  // Black generation section
+		  #pragma omp single
 		  fprintf(stdout, "Black generation \n");
 		  #pragma omp for private(x,y,cell)
 		  for(x = 1 ; x < worldSideLen ; x = x+2) {
@@ -418,25 +419,6 @@ void worldLoop(int noOfGenerations){
 			  }
 		  }
 
-
-	  /*---- Synchronization point ----- */
-	  #pragma omp for private(x,y,cell) nowait
-	  for(x = 1 ; x < worldSideLen ; x = x+2) {
-		  for(y = 0 ; y < worldSideLen ; y++) {
-			  cell = getCell(x,y);
-			  update(cell);
-		  }
-
-	  }
-
-
-#pragma omp for private(x,y,cell)
-      for(x = 0 ; x < worldSideLen ; x = x+2) {
-	for(y = 0 ; y < worldSideLen ; y++) {
-	  cell = getCell(x,y);
-	  update(cell);
-	}
-      }
       // #pragma omp barrier // We must wait the update of the red generation
 #pragma omp for private(x,y,cell)
       for(x = 1 ; x < worldSideLen ; x = x+2) {
@@ -446,8 +428,11 @@ void worldLoop(int noOfGenerations){
 	}
       }
     }
-    printWorld2d(stdout);
-    pressEntertoContinue();	  
+    #pragma omp single 
+    {
+		printWorld2d(stdout);
+		pressEntertoContinue();	  
+	}
 
   }
 }
