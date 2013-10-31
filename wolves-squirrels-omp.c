@@ -414,8 +414,6 @@ void worldLoop(int noOfGenerations){
 				  }
 			  }
 		  }
-
-      // #pragma omp barrier // We must wait the update of the red generation
 		#pragma omp for private(x,y,cell)
 			  for(x = 1 ; x < worldSideLen ; x = x+2) {
 				for(y = 0 ; y < worldSideLen ; y++) {
@@ -424,11 +422,11 @@ void worldLoop(int noOfGenerations){
 				}
 			  }
     }
-    #pragma omp single 
-    {
-		printWorld2d(stdout);
-		pressEntertoContinue();	  
-	}
+    //#pragma omp single 
+    //{
+	//	printWorld2d(stdout);
+		//pressEntertoContinue();	  
+	//}
 
   }
 }
@@ -480,8 +478,8 @@ int main(int argc, char **argv){
   loadWorld(input);
   fprintf(stdout, "Initial world configuration after loading from file:\n");
   fflush(stdout); /* force it to go out */
-  printWorld2d(stdout);
-  pressEntertoContinue();
+  //printWorld2d(stdout);
+  //pressEntertoContinue();
   worldLoop(noOfGenerations);
   printWorld();
 
