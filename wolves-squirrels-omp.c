@@ -11,43 +11,40 @@
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
 */
 
-
-/* TYPES */
+/*TYPE*/
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
-
-typedef unsigned int uint;
 
 typedef struct cell_t {
   cell_habitant_t type;		//who lives in this cell
-  uint starvation;		//starvation period if wolf
-  uint breeding;		//breeding period of creature
+  int starvation;		//starvation period if wolf
+  int breeding;		//breeding period of creature
   struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
-  uint updateSize;
+  int updateSize;
 } cell_t;
 
 //list of neighbours of some cell
 typedef struct neighbours_t {
   cell_t** cells;
-  uint size;
+  int size;
 } neighbours_t;
 
 /* GLOBALS */
 cell_t* world = NULL;
-uint worldSideLen = 0;
-uint worldSize = 0;
-uint wolfBreedingPeriod = 0;
-uint squirrelBreedingPeriod = 0;
-uint wolfStarvationPeriod = 0;
+int worldSideLen = 0;
+int worldSize = 0;
+int wolfBreedingPeriod = 0;
+int squirrelBreedingPeriod = 0;
+int wolfStarvationPeriod = 0;
 
 /* FUNCTIONS */
-cell_t* getCell(uint x, uint y){
+cell_t* getCell(int x, int y){
   /* printf ("X: %d; Y: %d\n", x, y); */
   assert(x < worldSideLen && x >= 0);
   assert(y < worldSideLen && y >= 0);
   return &world[y * worldSideLen + x];
 }
 
-cell_t* getCellAndCheckBoundries(uint x, uint y){
+cell_t* getCellAndCheckBoundries(int x, int y){
   if(x < 0 || x >= worldSideLen || y < 0 || y >= worldSideLen)
     return NULL;
   return getCell(x,y);
@@ -75,7 +72,6 @@ char cellTypeTochar(cell_habitant_t type){
   default: assert(0 == 1);
   }
 }
-
 void loadWorld(FILE* file){
   char* buf = NULL;
   char type;
@@ -113,7 +109,7 @@ void loadWorld(FILE* file){
   }
 }
 
-uint isRed(uint x, uint y){
+int isRed(int x, int y){
   if((x%2 == 0 && y%2==0) || (x%2 == 1 && y%2 == 1))
     return 1;
   return 0;
@@ -128,14 +124,14 @@ cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
 }
 
 //returns in correct order up -> right -> down -> left
-neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
+neighbours_t getActiveCellsAroundFor(int x, int y, cell_habitant_t type){
   cell_t* up, *right, *down, *left;
   up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
   right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
   down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
   left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
 
-  uint size = 0;
+  int size = 0;
   if(up != NULL) size++;
   if(right != NULL) size++;
   if(down != NULL) size++;
@@ -145,7 +141,7 @@ neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
   neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
   neighbours.size = size;
 
-  uint pos = 0;
+  int pos = 0;
   if(down != NULL) neighbours.cells[pos++] = down;
   if(right != NULL) neighbours.cells[pos++] = right;
   if(up != NULL) neighbours.cells[pos++] = up;
@@ -156,7 +152,7 @@ neighbours_t getActiveCellsAroundFor(uint x, uint y, cell_habitant_t type){
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
 void checkIfShouldDie(cell_t* who){
-  if(who->type == WOLF && who->starvation == 0){
+  if(who->type == WOLF && who->starvation <= 0){
     who->type = EMPTY;
   }
 }
@@ -233,9 +229,9 @@ void move(cell_t* from, cell_t* to){
   }
 }
 
-void doSquirrelStuff(uint x, uint y, cell_t* cell){
+void doSquirrelStuff(int x, int y, cell_t* cell){
   neighbours_t neighbours = getActiveCellsAroundFor(x, y, SQUIRREL);
-  uint i = 0;
+  int i = 0;
   cell_t* n = NULL;
 
   //look for empty place to move
@@ -243,7 +239,7 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
     n = neighbours.cells[i];
     if(n->type == EMPTY || n->type == TREE){
       cell->updates[cell->updateSize] = n;
-      cell->updateSize++;
+      ++cell->updateSize;
       free(neighbours.cells);
       return;
     }
@@ -251,9 +247,9 @@ void doSquirrelStuff(uint x, uint y, cell_t* cell){
   free(neighbours.cells);
 }
 
-void doWolfStuff(uint x, uint y, cell_t* cell){
+void doWolfStuff(int x, int y, cell_t* cell){
   neighbours_t neighbours = getActiveCellsAroundFor(x, y, WOLF);
-  uint i = 0;
+  int i = 0;
   cell_t* n = NULL;
 
   //check for squirrel
@@ -285,7 +281,7 @@ void doWolfStuff(uint x, uint y, cell_t* cell){
 
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
-  uint i, updates = cell->updateSize;
+  int i, updates = cell->updateSize;
 
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
