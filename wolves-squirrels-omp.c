@@ -95,18 +95,13 @@ void loadWorld(FILE* file){
     world[i].updateSize = 0;
   }
 
-  //init cells
+   //init cells
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &y, &x, &type);
     cell = getCell(x, y);
     cell->type = charToCellType(type);
-
-    if(type == TREE_WITH_SQUIRREL || type == SQUIRREL){
-      cell->breeding = 0;
-    }else if(type == WOLF){
-      cell->breeding = 0;
-      cell->starvation = wolfStarvationPeriod;
-    }
+    cell->breeding = 0;
+    cell->starvation = wolfStarvationPeriod;
   }
 }
 
@@ -349,83 +344,43 @@ void pressEntertoContinue(){
 void worldLoop(int noOfGenerations){
   int x, y, i;
   cell_t* cell;
-  
-  for(i = 0 ; i < noOfGenerations ; i++) {
-	  fprintf(stdout, "Iteration %d \n", i+1);
-	  
-	  #pragma omp parallel
-	  {
-	   // Red generation section
-		  #pragma omp single
-		  fprintf(stdout, "Red generation \n");
-		  #pragma omp for private(x,y,cell) 
-		  for(x = 0 ; x < worldSideLen ; x = x+2) {
-			  for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x, y);
-				  cell->starvation--;
-				  cell->breeding++;
-				  switch(cell->type){
-				  case EMPTY: break;
-				  case ICE: break;
-				  case TREE: break;
-				  case SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case TREE_WITH_SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case WOLF:
-					doWolfStuff(x, y, cell);
-					break;
-				  }
-			  }
-		  }
-		  
-		  #pragma omp for private(x,y,cell)
-		  for(x = 0 ; x < worldSideLen ; x = x+2) {
-			for(y = 0 ; y < worldSideLen ; y++) {
-			  cell = getCell(x,y);
-			  update(cell);
-			}
-		  }
 
-		  // Black generation section
-		  #pragma omp single
-		  fprintf(stdout, "Black generation \n");
-		  #pragma omp for private(x,y,cell)
-		  for(x = 1 ; x < worldSideLen ; x = x+2) {
-			  for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x, y);
-				  switch(cell->type){
-				  case EMPTY: break;
-				  case ICE: break;
-				  case TREE: break;
-				  case SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case TREE_WITH_SQUIRREL:
-					doSquirrelStuff(x, y, cell);
-					break;
-				  case WOLF:
-					doWolfStuff(x, y, cell);
-					break;
-				  }
-			  }
-		  }
-		#pragma omp for private(x,y,cell)
-			  for(x = 1 ; x < worldSideLen ; x = x+2) {
-				for(y = 0 ; y < worldSideLen ; y++) {
-				  cell = getCell(x,y);
-				  update(cell);
-				}
-			  }
+  for(i = 0 ; i < 4 * noOfGenerations ; i++){
+    if(i % 4 == 1)
+      fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
+    if(i % 4 == 3)
+      fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
+    #pragma omp parallel for private(x,y,cell)
+    for(y = 0 ; y < worldSideLen ; y++){
+      for(x = 0 ; x < worldSideLen ; x++){
+	cell = getCell(x, y);
+	if(i % 4 == 0){
+	  cell->starvation--;
+	  cell->breeding++;	  
+	}	
+	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
+	  switch(cell->type){
+	  case EMPTY: break;
+	  case ICE: break;
+	  case TREE: break;
+	  case SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case TREE_WITH_SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case WOLF:
+	    doWolfStuff(x, y, cell);
+	    break;
+	  }
+	} else if(i%4==3 || i%4==1){
+	  update(cell);
+	}
+      }
     }
-    //#pragma omp single 
-    //{
+    if (i%4==1 || i%4==3)
 		printWorld2d(stdout);
-		//pressEntertoContinue();	  
-	//}
-
+    /* pressEntertoContinue(); */
   }
 }
  
@@ -476,7 +431,7 @@ int main(int argc, char **argv){
   loadWorld(input);
   fprintf(stdout, "Initial world configuration after loading from file:\n");
   fflush(stdout); /* force it to go out */
-  printWorld2d(stdout);
+  //printWorld2d(stdout);
   //pressEntertoContinue();
   worldLoop(noOfGenerations);
   printWorld();
