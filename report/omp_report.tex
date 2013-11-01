@@ -117,7 +117,10 @@ Cappart Quentin (77827)\\
 
 \section*{Conflict resolution}
 
-\section*{Load Balancing}
+The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
+directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
+So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
+the conflict are implicitly resolved.
 
 \section*{Performances analyze}
 
@@ -128,22 +131,40 @@ The following array recaps the execution time of the OMP version with severals n
   \hline
     Instance     & 1 thread   & 2 threads   & 4 threads  & 8 threads  \\
   \hline
-    ex3.in       &  0000      & 0000        & 0000       & 0000 \\ 
+    ex3.in       &  0.008     & 0.008        & 0.017       &  0.020 \\ 
   \hline
-    world\_10.in &  0000      & 0000        & 0000       & 0000 \\ 
+    world\_10.in &  0.011      &  0.006       & 0.021       & 0.035 \\ 
   \hline
-   world\_100.in &  0000      & 0000        & 0000       & 0000 \\ 
+   world\_100.in &  0.111      & 0.070        & 0.068      & 0.1278 \\ 
   \hline
-  world\_1000.in &  0000      & 0000        & 0000       & 0000 \\ 
-  \hline
-    exBig.in     &  0000      & 0000        & 0000       & 0000 \\ 
+  world\_1000.in &  12.885   & 7.712       & 6.534      &  6.522 \\ 
   \hline
 \end{tabular}
-\caption{Performances for the different instances.}
+\caption{Performances (in sec) for the different instances.}
 \end{table}
 
-We did these experiments on a computer with 4 cores. 
-So with more than 4 threads we didn't expect an improvement of the execution time.
+We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
+let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
+First, we notice that for the smallest instance, \texttt{ex3.in},
+more we have threads, more the program is slow. This is normal. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
+synchronization for example), surpass the gain that we have by the multithreading.
+For the instance \texttt{world\_10.in}, we notice it from 4 threads.
+For the biggest instance, \texttt{world\_1000.in}, we see the speedup with severals threads. The speedup decreases with the number
+of thread\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
+A last comment is that, given that the computer has 4 cores, we loose the interest of multithreading after 4 threads.
+\\
 
+Now, let's compare the execution time for  world\_1000.in with the ideal speedup\footnote{$S = \frac{T_{serial}}{N_{threads}}$}
+with different numbers of threads :
 
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=8cm]{speedup.png}
+  \caption{Comparison with the ideal speedup.}
+\end{figure} 
+
+We two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
+Indeed, there is always overhead when we deal with threads and all of our code is not multithreaded, so it's normal that we don't reach
+the ideal result.
 \end{document}
+
