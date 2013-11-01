@@ -115,7 +115,20 @@ Cappart Quentin (77827)\\
 
 \section*{Decomposition done}
 
+To understand our decomposition, we must explain before how our serial version works.
+The main work are done in the huge worldLoop :
+
+\begin{lstlisting}
+for(i = 0 ; i < 4 * noOfGenerations ; i++){...}
+\end{lstlisting}
+
+
 \section*{Conflict resolution}
+
+The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
+directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
+So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
+the conflict are implicitly resolved.
 
 \section*{Load Balancing}
 

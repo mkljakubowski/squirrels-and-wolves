@@ -115,12 +115,44 @@ Cappart Quentin (77827)\\
 
 \section*{Decomposition done}
 
+To understand our decomposition, we must explain before how our serial version works.
+The main work are done in the huge worldLoop :
+
+\begin{lstlisting}
+for(i = 0 ; i < 4 * noOfGenerations ; i++){...}
+\end{lstlisting}
+
+What is particular is that we iterate to 4 times the number of generations. This structure was done to do the following things :
+
+\begin{enumerate}
+ \item We proceed the red generation and we keep all the conflicting movement.
+ \item We deal with the conflicting movement of the red generation.
+ \item We proceed the black generation and we keep all the conflicting movement.
+ \item We deal with the conflicting movement of the black generation.
+\end{enumerate}
+
+Each part are done in one particular iteration, the correct action are chosen thanks to modulo and conditional operation.
+With this structure we don't want to parallelize this main loop, but only his content. 
+And after each iteration we need to synchronize. So, our parallelization are done like this 
+
+\begin{lstlisting}
+#pragma omp parallel for private(x,y,cell)
+for(y = 0 ; y < worldSideLen ; y++){
+      for(x = 0 ; x < worldSideLen ; x++){
+	      //proceeding the cells
+      }
+)
+\end{lstlisting}
+
+Let's notice that we only parallelize on the row and not on the column because of the cache and to keep the adjacent portion of memory
+together.
+
 \section*{Conflict resolution}
 
 The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
 directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
 So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
-the conflict are implicitly resolved.
+the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
 
 \section*{Load Balancing}
 
