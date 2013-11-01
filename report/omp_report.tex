@@ -156,7 +156,7 @@ So, with the parallelization, given that we have an implicit synchronization aft
 the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
 
 \section*{Load Balancing}
-Logic of every sub-generation in two steps. 
+Logic of every sub-generation is divied in two steps. 
 Selecting updates and updating itself. 
 Second phase is done per cell, so it is easy to parallelize. 
 Every cell has a list of updates that needs to be invoked on it. 
@@ -193,12 +193,12 @@ The following array recaps the execution time of the OMP version with severals n
 We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
 let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
 First, we notice that for the smallest instance, \texttt{ex3.in},
-more we have threads, more the program is slow. This is normal. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
-synchronization for example), surpass the gain that we have by the multithreading.
+more threads we have, the program is slower. This was expected. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
+synchronization for example), surpass the gain of multithreading.
 For the instance \texttt{world\_10.in}, we notice it from 4 threads.
-For the biggest instance, \texttt{world\_1000.in}, we see the speedup with severals threads. The speedup decreases with the number
-of thread\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
-A last comment is that, given that the computer has 4 cores, we loose the interest of multithreading after 4 threads.
+For the biggest instance, \texttt{world\_1000.in}, we see the speedup when we deal with severals threads. The speedup per core decreases with the number
+of threads\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
+Finally, given that the computer has 4 cores, we are not interested in creating more than.
 \\
 
 Now, let's compare the execution time for  world\_1000.in with the ideal speedup\footnote{$S = \frac{T_{serial}}{N_{threads}}$}
@@ -206,12 +206,12 @@ with different numbers of threads :
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=8cm]{speedup.png}
+%  \includegraphics[width=8cm]{speedup.png}
   \caption{Comparison with the ideal speedup.}
 \end{figure} 
 
-We two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
-Indeed, there is always overhead when we deal with threads and all of our code is not multithreaded, so it's normal that we don't reach
+With two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
+Indeed, there is always overhead when we deal with threads and not all of our code is multithreaded, so it's normal that we don't reach
 the ideal result.
 \end{document}
 
