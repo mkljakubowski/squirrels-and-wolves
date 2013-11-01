@@ -4,8 +4,6 @@
 #include <ctype.h>
 #include <omp.h>
 
-
-
 /*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
@@ -278,6 +276,8 @@ void doWolfStuff(int x, int y, cell_t* cell){
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   int i, updates = cell->updateSize;
+
+  #pragma omp parallel for schedule(dynamic,1)
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
       eat(cell, cell->updates[i]); //if wolf->squirrel then eat
