@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  1 NOV 2013 13:26
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  1 NOV 2013 14:47
 entering extended mode
  %&-line parsing enabled.
 **omp_report.tex
@@ -1051,63 +1051,63 @@ File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <8> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 122.
-LaTeX Font Info:    Try loading font information for OT1+lmr on input line 164.
+LaTeX Font Info:    Try loading font information for OT1+lmr on input line 166.
 
 
 (/usr/share/texmf/tex/latex/lm/ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Try loading font information for OML+lmm on input line 164.
+LaTeX Font Info:    Try loading font information for OML+lmm on input line 166.
 
 
 (/usr/share/texmf/tex/latex/lm/omllmm.fd
 File: omllmm.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Try loading font information for OMS+lmsy on input line 164
+LaTeX Font Info:    Try loading font information for OMS+lmsy on input line 166
 .
 
 (/usr/share/texmf/tex/latex/lm/omslmsy.fd
 File: omslmsy.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
-LaTeX Font Info:    Try loading font information for OMX+lmex on input line 164
+LaTeX Font Info:    Try loading font information for OMX+lmex on input line 166
 .
 
 (/usr/share/texmf/tex/latex/lm/omxlmex.fd
 File: omxlmex.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 164.
+(Font)              <10> on input line 166.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 164.
+(Font)              <7> on input line 166.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 164.
-LaTeX Font Info:    Try loading font information for U+msa on input line 164.
+(Font)              <5> on input line 166.
+LaTeX Font Info:    Try loading font information for U+msa on input line 166.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2009/06/22 v3.00 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 164.
+LaTeX Font Info:    Try loading font information for U+msb on input line 166.
 
 (/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2009/06/22 v3.00 AMS symbols B
 )
-Underfull \hbox (badness 10000) in paragraph at lines 180--190
+Underfull \hbox (badness 10000) in paragraph at lines 182--192
 
  []
 
 [1]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 191.
+(Font)              <8> on input line 193.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 191.
+(Font)              <6> on input line 193.
  <speedup.png, id=21, 411.136pt x 308.352pt>
 File: speedup.png Graphic file (type png)
  <use speedup.png> [2 <./speedup.png (PNG copy)>] (./omp_report.aux) ) 
 Here is how much of TeX's memory you used:
- 17753 strings out of 493848
- 329005 string characters out of 1152823
+ 17754 strings out of 493848
+ 329010 string characters out of 1152823
  467798 words of memory out of 3000000
- 20643 multiletter control sequences out of 15000+50000
+ 20644 multiletter control sequences out of 15000+50000
  58308 words of font info for 56 fonts, out of 3000000 for 9000
  714 hyphenation exceptions out of 8191
  63i,9n,57p,444b,1173s stack positions out of 5000i,500n,10000p,200000b,50000s

@@ -144,19 +144,28 @@ for(y = 0 ; y < worldSideLen ; y++){
 )
 \end{lstlisting}
 
-
-
+Let's notice that we only parallelize on the row and not on the column because of the cache and to keep the adjacent portion of memory
+together.
 
 \section*{Conflict resolution}
 
 The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
 directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
 So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
-the conflict are implicitly resolved.
+the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
 
 \section*{Load Balancing}
 
 \section*{Performances analyze}
+
+
+\begin{equation}
+ \label{eq1}
+ x = 2
+\end{equation}
+
+
+
 
 The following array recaps the execution time of the OMP version with severals numbers of threads.
 \begin{table}[!ht]
@@ -176,7 +185,7 @@ The following array recaps the execution time of the OMP version with severals n
 \end{tabular}
 \caption{Performances (in sec) for the different instances.}
 \end{table}
-
+\eqref{eq1}
 We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
 let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
 First, we notice that for the smallest instance, \texttt{ex3.in},
