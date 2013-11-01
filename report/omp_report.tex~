@@ -1,6 +1,6 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage[utf8]{inputenc}
-\usepackage[french] {babel}
+\usepackage[english] {babel}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{graphicx}
@@ -155,15 +155,9 @@ So, with the parallelization, given that we have an implicit synchronization aft
 the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
 
 \section*{Load Balancing}
+Logic of every sub-generation in two steps. Selecting updates and updating itself. Second phase is done per cell, so it is easy to parallelize. Every cell has a list of updates that needs to be invoked on it. Load balancing is done by diving those lists evenly between cores by dynamic sheduling.
 
 \section*{Performances analyze}
-
-
-\begin{equation}
- \label{eq1}
- x = 2
-\end{equation}
-
 
 
 
@@ -185,7 +179,7 @@ The following array recaps the execution time of the OMP version with severals n
 \end{tabular}
 \caption{Performances (in sec) for the different instances.}
 \end{table}
-\eqref{eq1}
+
 We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
 let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
 First, we notice that for the smallest instance, \texttt{ex3.in},

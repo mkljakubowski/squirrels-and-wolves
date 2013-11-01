@@ -155,11 +155,20 @@ So, with the parallelization, given that we have an implicit synchronization aft
 the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
 
 \section*{Load Balancing}
-Logic of every sub-generation in two steps. Selecting updates and updating itself. Second phase is done per cell, so it is easy to parallelize. Every cell has a list of updates that needs to be invoked on it. Load balancing is done by diving those lists evenly between cores by dynamic sheduling.
+Logic of every sub-generation in two steps. 
+Selecting updates and updating itself. 
+Second phase is done per cell, so it is easy to parallelize. 
+Every cell has a list of updates that needs to be invoked on it. 
+Load balancing is done by diving those lists evenly between cores by dynamic sheduling. It's done by this pragma
+in the \texttt{update} fonction :
+
+\begin{lstlisting}
+ #pragma omp parallel for schedule(dynamic,1)
+\end{lstlisting}
+
+We add it in the code, but it gave a slower execution time, so we didn't integrate it in our final version.
 
 \section*{Performances analyze}
-
-
 
 The following array recaps the execution time of the OMP version with severals numbers of threads.
 \begin{table}[!ht]
