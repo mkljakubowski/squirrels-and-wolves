@@ -278,7 +278,6 @@ void doWolfStuff(int x, int y, cell_t* cell){
 //updates current cell and cells that want to do something with this cell
 void update(cell_t* cell){
   int i, updates = cell->updateSize;
-
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
       eat(cell, cell->updates[i]); //if wolf->squirrel then eat
@@ -378,8 +377,8 @@ void worldLoop(int noOfGenerations){
 	}
       }
     }
-    //if (i%4==1 || i%4==3)
-	//	printWorld2d(stdout);
+    if (i%4==1 || i%4==3)
+		printWorld2d(stdout);
     /* pressEntertoContinue(); */
   }
 }
@@ -396,7 +395,6 @@ void printWorld()
   fflush(stdout); /* force it to go out */
   
   // No need of data sharing here : Distribute thread on the row (not on column cause of cache).
-#pragma omp parallel for private(x,y,cell)
   for(x = 0 ; x < worldSideLen ; x++){
     for(y = 0 ; y < worldSideLen ; y++){
       cell = getCell(x, y);
@@ -434,7 +432,7 @@ int main(int argc, char **argv){
   //printWorld2d(stdout);
   //pressEntertoContinue();
   worldLoop(noOfGenerations);
-  //printWorld();
+  printWorld();
 
   fclose(input);
   double end = omp_get_wtime();

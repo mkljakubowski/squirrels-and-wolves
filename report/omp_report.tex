@@ -1,0 +1,149 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french] {babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{ulem}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{circuitikz}
+\usepackage{subfig}
+\usepackage[a4paper]{geometry}
+\geometry{hscale=0.7,vscale=0.7,centering}
+\usepackage{vmargin}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{moreverb}
+\usepackage{listings}
+\usepackage{qtree}
+\graphicspath{{IMAGES/}}
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{defi}{Définition}[section]
+\newtheorem{propri}{Propriété}[section]
+\newtheorem{ex}{Exemple}[section]
+\newtheorem{thesis}{Thèse}[section]
+\newtheorem{cor}{Corollaire}[section]
+
+\usepackage{color}
+
+\definecolor{gris}{rgb}{0.95,0.95,0.95}
+
+
+% Param�rage des listings
+\lstset{basicstyle=\footnotesize\ttfamily}
+\lstset{keywordstyle=\color[rgb]{0,0,1}\bfseries}
+\lstset{identifierstyle=\color{black}}
+\lstset{commentstyle=\color[rgb]{0,0.4,0}}
+\lstset{stringstyle=\color[rgb]{0.7,0,0}}
+\lstset{showstringspaces=false}
+\lstset{showtabs=false}
+\lstset{tabsize=3}
+\lstset{extendedchars=true}
+\lstset{breaklines=true}
+\lstset{postbreak={}}
+\lstset{breakautoindent=true}
+\lstset{breakindent=0pt}
+\lstset{xleftmargin=0.1cm}
+\lstset{xrightmargin=0cm}
+\lstset{frame=tb,rulecolor=\color[gray]{.4}}
+\lstset{captionpos=b}
+\lstset{aboveskip=0.5cm,belowskip=0.5cm}
+\lstset{numbers=left}
+\lstset{columns=fixed}
+\lstset{language=java}
+
+
+
+\newcommand{\code}[1]{\lstinline{#1}}
+
+\setlength{\parskip}{.7em}
+
+\begin{document}
+
+
+\begin{flushleft}
+\includegraphics[scale=0.3]{logo_ist.jpeg}
+\end{flushleft}
+
+
+\vspace{1cm}
+
+\begin{center}{
+\scshape{\LARGE Wolves and squirrel : Part 1 }}
+
+\vspace{0.5cm}
+\hbox{\raisebox{0.4em}{\vrule depth 0pt height 0.05cm width 16cm}}
+{\setlength{\parskip}{0.2cm}
+
+ \Huge
+ \bfseries
+ \LARGE  Parallel and Distributed Computing
+ \\
+CPD \\
+
+\vspace{0.2cm}
+
+}
+\vspace{0.5cm}
+
+\hbox{\raisebox{0.4em}{\vrule depth 0pt height 0.05cm width 16cm}}
+\vspace{2.5cm}
+
+
+\end{center}
+
+\vspace{3cm}
+
+
+\vfill
+\begin{flushright}
+\textbf{Group 30 :}\\
+Cappart Quentin (77827)\\
+
+\end{flushright}
+\newpage
+
+\setcounter{page}{1}
+
+\renewcommand\thepage{\arabic{page}}
+
+
+\newpage
+
+\section*{Decomposition done}
+
+\section*{Conflict resolution}
+
+\section*{Load Balancing}
+
+\section*{Performances analyze}
+
+The following array recaps the execution time of the OMP version with severals numbers of threads.
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|r||r|r|r|r|}
+  \hline
+    Instance     & 1 thread   & 2 threads   & 4 threads  & 8 threads  \\
+  \hline
+    ex3.in       &  0000      & 0000        & 0000       & 0000 \\ 
+  \hline
+    world\_10.in &  0000      & 0000        & 0000       & 0000 \\ 
+  \hline
+   world\_100.in &  0000      & 0000        & 0000       & 0000 \\ 
+  \hline
+  world\_1000.in &  0000      & 0000        & 0000       & 0000 \\ 
+  \hline
+    exBig.in     &  0000      & 0000        & 0000       & 0000 \\ 
+  \hline
+\end{tabular}
+\caption{Performances for the different instances.}
+\end{table}
+
+We did these experiments on a computer with 4 cores. 
+So with more than 4 threads we didn't expect an improvement of the execution time.
+
+
+\end{document}
