@@ -344,20 +344,21 @@ void worldLoop(int noOfGenerations){
   int x, y, i;
   cell_t* cell;
 
-  for(i = 0 ; i < 4 * noOfGenerations ; i++){
-    if(i % 4 == 1)
+  for(i = 0 ; i < 2 * noOfGenerations ; i++){
+    if(i % 2 == 0)
       fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
-    if(i % 4 == 3)
+    if(i % 2 == 1)
       fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
-    #pragma omp parallel for private(x,y,cell)
+
+    #pragma omp parallel for private(x,y) shared(cell)
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
-	if(i % 4 == 0){
+	if(i % 2 == 0){
 	  cell->starvation--;
 	  cell->breeding++;	  
 	}	
-	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
+	if (((i % 2 == 0) && isRed(x, y)) || ((i % 2 == 1) && !isRed(x, y))) {
 	  switch(cell->type){
 	  case EMPTY: break;
 	  case ICE: break;
@@ -372,18 +373,19 @@ void worldLoop(int noOfGenerations){
 	    doWolfStuff(x, y, cell);
 	    break;
 	  }
-	} else if(i%4==3 || i%4==1){
-	  update(cell);
 	}
       }
     }
-   // if (i%4==1 || i%4==3)
-	//	printWorld2d(stdout);
-    /* pressEntertoContinue(); */
+
+    #pragma omp parallel for private(x,y,cell)
+    for(y = 0 ; y < worldSideLen ; y++){
+      for(x = 0 ; x < worldSideLen ; x++){
+	cell = getCell(x, y);
+	update(cell);
+      }
+    }
   }
 }
- 
-
 
 /* PRINT WORLD IN STDOUT */
 void printWorld()
