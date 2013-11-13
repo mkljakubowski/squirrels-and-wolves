@@ -345,12 +345,11 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
 
   for(i = 0 ; i < 2 * noOfGenerations ; i++){
-    if(i % 2 == 0)
-      fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
-    if(i % 2 == 1)
-      fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
+//     if(i % 2 == 0)
+//       fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
+//     if(i % 2 == 1)
+//       fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
 
-    #pragma omp parallel for private(x,y) shared(cell)
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
@@ -429,15 +428,15 @@ int main(int argc, char **argv){
   wolfStarvationPeriod = atoi(argv[4]);
   int noOfGenerations = atoi(argv[5]);
   loadWorld(input);
-  fprintf(stdout, "Initial world configuration after loading from file:\n");
-  fflush(stdout); /* force it to go out */
+//   fprintf(stdout, "Initial world configuration after loading from file:\n");
+//   fflush(stdout); /* force it to go out */
   //printWorld2d(stdout);
   //pressEntertoContinue();
   worldLoop(noOfGenerations);
-  //printWorld();
+//   printWorld();
 
   fclose(input);
   double end = omp_get_wtime();
-  fprintf(stdout,"Execution time %f\n",end-start);
+//   fprintf(stdout,"Execution time %f\n",end-start);
   return 0;
 }

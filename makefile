@@ -10,10 +10,10 @@ run-serial: wolves-squirrels-serial
 	./wolves-squirrels-serial input 4 4 4 4
 
 run-serial2: wolves-squirrels-serial
-	./wolves-squirrels-serial ex3.in 3 4 4 4
+	./wolves-squirrels-serial ex3.in 10 10 10 1000 > serial
 
 run-omp: wolves-squirrels-omp
-	time ./wolves-squirrels-omp exBig.in 10 10 10 10
+	./wolves-squirrels-omp ex3.in 10 10 10 2000 > parallel
 
 gdb: wolves-squirrels-serial
 	gdb --args ./wolves-squirrels-serial ex3.in 10 10 10 10

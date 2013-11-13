@@ -1,0 +1,21 @@
+0. ================================================ Things to know before you start
+- this spec is not final, it's just a guide
+- anything that you think is worng should get corrected
+- all communication between nodes is asynchronus
+- meaning of constants:
+  - N - number of nodes
+  - K - length of side of world
+
+1. ================================================ Data format
+cell_t {
+  int x,y;			//position of cell in the world
+  cell_habitant_t type;		//what is living inside
+  int starvation, breeding;	//properties of living creature
+}
+
+2. ================================================ Master/Servant
+Nodes will be split in 2 groups:
+- master (1 node) - will be handling communication, synchronisation, propagation and evenly divide the work between servants
+- servant (N-1 nodes) - will be doing all computation and logic
+Implementation: http://dvbmonkey.wordpress.com/2009/03/02/an-open-mpi-master-servant-example/
+
