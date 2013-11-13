@@ -5,6 +5,7 @@
 - meaning of constants:
   - N - number of nodes
   - K - length of side of world
+  - G - number of generations
 
 1. ================================================ Data format
 cell_t {
@@ -19,3 +20,49 @@ Nodes will be split in 2 groups:
 - servant (N-1 nodes) - will be doing all computation and logic
 Implementation: http://dvbmonkey.wordpress.com/2009/03/02/an-open-mpi-master-servant-example/
 
+3. ================================================ Messages type
+- NEW_BOARD(side:int)
+- UPDATE_CELL(c : cell_t)
+- FINISHED()
+- START_NEXT_GENERATION(RED or BLACK)
+
+4. ================================================ Master
+Data:
+Algorythm:
+- loads world from file
+- splits the world in N-1 parts
+- sends NEW_BOARD(K) to every node
+- sends correct part of board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on)
+- sends FINISHED to confirm sending all cells
+- in 2*G step loop:
+  - sends START_NEXT_GENERATION(color) to every node
+  - starts listening on all channels for incoming updates, saves them
+  - counts FINISHED messages - if count == N-1 then sub-gen finished
+  - sends stored updates to all servants
+  - sends FINISHED to all servants
+- sends FINISHED to all servants to notify that all generations are finished
+- starts to listen for UPDATE_CELL from all servants, save incoming cell into a world array
+- counts incoming FINISHED messages - if N-1 the comutation is finished
+- prints the output to stdout
+- exits
+
+6. ================================================ Servant
+Data:
+- array of (K*K)/(N-1) cells
+- startX, endX, startY, endY - position of board piece
+Algorythm:
+- starts listening for NEW_BOARD message -> allocates memory for its board part
+- listens for UPDATE_CELL messages, saves messages to board
+- listens for FINISHED meaning all cells are in place
+- in loop:
+  - listens for message
+    - if it is FINISHED - all generations are finished - break the loop
+    - if START_NEXT_GENERATION(color) - start next generation of color 'color'
+  - do the computation of its part of the board
+  - send cells there were changed on a border to master with message UPDATE_CELL
+  - when done sends FINISHED to master
+  - listens for UPDATE_CELL messages from master
+  - if cells are in its part of the board updates them (potentially resolves conflicts)
+  - listens for FINISHED message from master
+- sends all cells from board to master with UPDATE_CELL
+- exits
