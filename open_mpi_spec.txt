@@ -20,7 +20,7 @@ Nodes will be split in 2 groups:
 - servant (N-1 nodes) - will be doing all computation and logic
 Implementation: http://dvbmonkey.wordpress.com/2009/03/02/an-open-mpi-master-servant-example/
 
-3. ================================================ Messages type
+3. ================================================ Messages types
 - NEW_BOARD(side:int)
 - UPDATE_CELL(c : cell_t)
 - FINISHED()
@@ -28,6 +28,8 @@ Implementation: http://dvbmonkey.wordpress.com/2009/03/02/an-open-mpi-master-ser
 
 4. ================================================ Master
 Data:
+- array of all cells
+- size of board
 Algorythm:
 - loads world from file
 - splits the world in N-1 parts
@@ -46,9 +48,9 @@ Algorythm:
 - prints the output to stdout
 - exits
 
-6. ================================================ Servant
+5. ================================================ Servant
 Data:
-- array of (K*K)/(N-1) cells
+- array of ~(1/N) cells 
 - startX, endX, startY, endY - position of board piece
 Algorythm:
 - starts listening for NEW_BOARD message -> allocates memory for its board part
