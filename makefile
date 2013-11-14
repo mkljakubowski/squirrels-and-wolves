@@ -1,4 +1,4 @@
-all: wolves-squirrels-serial wolves-squirrels-omp
+all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
 	gcc -o wolves-squirrels-serial -g -Wall wolves-squirrels-serial.c
@@ -24,15 +24,18 @@ time: all
 
 1:
 	export OMP_NUM_THREADS=1
-	
+
 2:
 	export OMP_NUM_THREADS=2
-	
+
 4:
 	export OMP_NUM_THREADS=4
-	
+
 8:
 	export OMP_NUM_THREADS=8
 
 clean:
 	rm -f wolves-squirrels-serial wolves-squirrels-omp
+
+wolves-squirrels-mpi: wolves-squirrels-mpi.c
+	mpicc -o wolves-squirrels-mpi wolves-squirrels-mpi.c -g -Wall

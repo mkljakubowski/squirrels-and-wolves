@@ -1,7 +1,7 @@
 0. ================================================ Things to know before you start
 - this spec is not final, it's just a guide
-- anything that you think is worng should get corrected
-- all communication between nodes is asynchronus
+- anything that you think is wrong should get corrected
+- all communication between nodes is asynchronous
 - meaning of constants:
   - N - number of nodes
   - K - length of side of world
