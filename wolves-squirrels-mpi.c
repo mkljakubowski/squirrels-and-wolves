@@ -441,6 +441,16 @@ void processServant() {
 		int color;
 		MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
+		
+		
+		/* Process steps :
+			do the computation of its part of the board
+			send cells there were changed on a border to master with message UPDATE_CELL
+			when done sends FINISHED to master
+			listens for UPDATE_CELL messages from master
+			if cells are in its part of the board updates them (potentially resolves conflicts)
+			listens for FINISHED message from master
+		*/
 		if(color == RED) {
 			/* Red Process */
 		}
@@ -455,18 +465,8 @@ void processServant() {
 	/* exits */
 	
   
-  in loop:
-   listens for message
-      if it is FINISHED - all generations are finished - break the loop
-      if START_NEXT_GENERATION(color) - start next generation of color 'color'
-    do the computation of its part of the board
-    send cells there were changed on a border to master with message UPDATE_CELL
-    when done sends FINISHED to master
-    listens for UPDATE_CELL messages from master
-    if cells are in its part of the board updates them (potentially resolves conflicts)
-    listens for FINISHED message from master
-  sends all cells from board to master with UPDATE_CELL
-  exits
+
+
 
 }
 /* MAIN */
