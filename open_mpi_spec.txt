@@ -30,7 +30,7 @@ Implementation: http://dvbmonkey.wordpress.com/2009/03/02/an-open-mpi-master-ser
 Data:
 - array of all cells
 - size of board
-Algorythm:
+Algorithm:
 - loads world from file
 - splits the world in N-1 parts
 - sends NEW_BOARD(K) to every node

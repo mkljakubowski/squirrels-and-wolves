@@ -5,6 +5,10 @@
 #include <mpi.h>
 
 /*
+  http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc
+*/
+
+/*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
 */
@@ -339,10 +343,10 @@ void worldLoop(int noOfGenerations){
   cell_t* cell;
 
   for(i = 0 ; i < 4 * noOfGenerations ; i++){
-//     if(i % 4 == 1)
-//       fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
-// //     if(i % 4 == 3)
-//       fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
+    //     if(i % 4 == 1)
+    //       fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
+    // //     if(i % 4 == 3)
+    //       fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
@@ -407,21 +411,34 @@ int main(int argc, char **argv){
     fflush(stdout); /* force it to go out */
     exit(1);
   }
-  wolfBreedingPeriod = atoi(argv[2]);
-  squirrelBreedingPeriod = atoi(argv[3]);
-  wolfStarvationPeriod = atoi(argv[4]);
-  int noOfGenerations = atoi(argv[5]);
 
-  MPI_Init(&argc, &argv);
-  loadWorld(input);
-//   fprintf(stdout, "Initial world configuration after loading from file:\n");
-//   fflush(stdout); /* force it to go out */
-//   printWorld2d(stdout);
-  /* pressEntertoContinue(); */
-  worldLoop(noOfGenerations);
-//   printWorld();
+  if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
+    perror("Error initializing MPI");
+    exit(1);
+  }
 
-  fclose(input);
+  int p, id;
+  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
+  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
+  
+  if (id == 0) { // Master process
+    wolfBreedingPeriod = atoi(argv[2]);
+    squirrelBreedingPeriod = atoi(argv[3]);
+    wolfStarvationPeriod = atoi(argv[4]);
+    int noOfGenerations = atoi(argv[5]);
+        
+    loadWorld(input); // Master process loads initial World
+    fprintf(stdout, "Initial world configuration after loading from file:\n");
+    fflush(stdout); /* force it to go out */
+    printWorld2d(stdout);
+      
+    /* pressEntertoContinue(); */
+
+    worldLoop(noOfGenerations);
+    printWorld();
+  
+    fclose(input); // Close file descriptor
+  }
 
   MPI_Finalize();
   return 0;
