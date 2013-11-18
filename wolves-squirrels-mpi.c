@@ -4,6 +4,19 @@
 #include <ctype.h>
 #include <mpi.h>
 
+/* Type of messages */
+#define NEW_BOARD_TAG 100
+#define UPDATE_CELL_TAG 101
+#define FINISHED_TAG 102
+#define START_NEXT_GENERATION_TAG 103
+
+/* Type of nodes */
+#define MASTER_ID 0
+#define SERVANT_ID 1
+
+/* Colors */
+#define RED 1
+#define BLACK 2
 /*
   http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc
 */
@@ -399,6 +412,63 @@ void printWorld(){
   }
 }
 
+
+/* ACTIONS OF ONE SINGLE SERVANT */
+void processServant() {
+	int side;
+	
+	/* starts listening for NEW_BOARD message -> allocates memory for its board part */
+	MPI_Recv(&side, 1, MPI_iNT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	
+	
+	/* listens for UPDATE_CELL messages, saves messages to board */
+	
+	/* listens for FINISHED meaning all cells are in place */
+	
+	/* Servant loop */
+	while(true) {
+		
+		/* if it is FINISHED - all generations are finished - break the loop */
+		int isFinished = 0;
+		MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+		if(isFinished) {
+			break;
+		}
+		
+		/* if START_NEXT_GENERATION(color) - start next generation of color 'color' */
+		
+		int color;
+		MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		
+		if(color == RED) {
+			/* Red Process */
+		}
+		
+		else if(color == BLACK) {
+			/* Black Process */
+		}
+		
+	
+	/* sends all cells from board to master with UPDATE_CELL */
+	
+	/* exits */
+	
+  
+  in loop:
+   listens for message
+      if it is FINISHED - all generations are finished - break the loop
+      if START_NEXT_GENERATION(color) - start next generation of color 'color'
+    do the computation of its part of the board
+    send cells there were changed on a border to master with message UPDATE_CELL
+    when done sends FINISHED to master
+    listens for UPDATE_CELL messages from master
+    if cells are in its part of the board updates them (potentially resolves conflicts)
+    listens for FINISHED message from master
+  sends all cells from board to master with UPDATE_CELL
+  exits
+
+}
 /* MAIN */
 int main(int argc, char **argv){
   if(argc < 6){
@@ -429,7 +499,7 @@ int main(int argc, char **argv){
   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
   
         
-  if (id == 0) { // Master process
+  if (id == MASTER_ID) { // Master process
     loadWorld(input); // Master process loads initial World
     fprintf(stdout, "Initial world configuration after loading from file:\n");
     fflush(stdout); /* force it to go out */
@@ -441,6 +511,10 @@ int main(int argc, char **argv){
     printWorld();
 
     fclose(input); // Close file descriptor
+  }
+  
+  else { // Servant process
+	  processServant() // Actions of what a single servant must do
   }
 
   MPI_Finalize();
