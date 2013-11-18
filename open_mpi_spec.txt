@@ -68,3 +68,10 @@ Algorythm:
   - listens for FINISHED message from master
 - sends all cells from board to master with UPDATE_CELL
 - exits
+
+6. ==================================================== Additional notes
+Since the initialization of the program is done by command line, all copies of the program receive
+the initialization values passed by the command line call. There is no need to pass this values by
+an MPI message, since these values are readily available to all copies of the program.
+
+

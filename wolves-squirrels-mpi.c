@@ -37,6 +37,7 @@ int worldSize = 0;
 int wolfBreedingPeriod = 0;
 int squirrelBreedingPeriod = 0;
 int wolfStarvationPeriod = 0;
+int noOfGenerations = 0;
 
 /* FUNCTIONS */
 cell_t* getCell(int x, int y){
@@ -304,7 +305,7 @@ void fputcn(FILE *stream, int c, size_t n){
 void printWorld2d(FILE *stream){
   int x, y, i, j = 0;
   cell_t *cell;
-  fputcn(stream, '-', 3 * (1 +worldSideLen));
+  fputcn(stream, '-', 3 * (1 + worldSideLen));
   fprintf(stream, "   ");
   fflush(stream); /* force it to go out */
   for (i = 0 ; i < worldSideLen ; i++){
@@ -412,6 +413,12 @@ int main(int argc, char **argv){
     exit(1);
   }
 
+  /* INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE*/
+  wolfBreedingPeriod = atoi(argv[2]);
+  squirrelBreedingPeriod = atoi(argv[3]);
+  wolfStarvationPeriod = atoi(argv[4]);
+  noOfGenerations = atoi(argv[5]);
+
   if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
     perror("Error initializing MPI");
     exit(1);
@@ -421,22 +428,18 @@ int main(int argc, char **argv){
   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
   
-  if (id == 0) { // Master process
-    wolfBreedingPeriod = atoi(argv[2]);
-    squirrelBreedingPeriod = atoi(argv[3]);
-    wolfStarvationPeriod = atoi(argv[4]);
-    int noOfGenerations = atoi(argv[5]);
         
+  if (id == 0) { // Master process
     loadWorld(input); // Master process loads initial World
     fprintf(stdout, "Initial world configuration after loading from file:\n");
     fflush(stdout); /* force it to go out */
     printWorld2d(stdout);
-      
+
     /* pressEntertoContinue(); */
 
     worldLoop(noOfGenerations);
     printWorld();
-  
+
     fclose(input); // Close file descriptor
   }
 
