@@ -18,7 +18,6 @@
 #define RED 1
 #define BLACK 2
 /*
-  http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc
 */
 
 /*
@@ -415,62 +414,83 @@ void printWorld(){
 
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant() {
-	int side;
+  int side;
 	
-	/* starts listening for NEW_BOARD message -> allocates memory for its board part */
-	MPI_Recv(&side, 1, MPI_iNT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  /* starts listening for NEW_BOARD message -> allocates memory for its board part */
+  MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	
 	
-	/* listens for UPDATE_CELL messages, saves messages to board */
+  /* listens for UPDATE_CELL messages, saves messages to board */
 	
-	/* listens for FINISHED meaning all cells are in place */
+  /* listens for FINISHED meaning all cells are in place */
 	
-	/* Servant loop */
-	while(true) {
+  /* Servant loop */
+  while(1) {
 		
-		/* if it is FINISHED - all generations are finished - break the loop */
-		int isFinished = 0;
-		MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    /* if it is FINISHED - all generations are finished - break the loop */
+    int isFinished = 0;
+    // Go into a blocking-receive waiting
+    MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
-		if(isFinished) {
-			break;
-		}
+    if(isFinished) {
+      break;
+    }
 		
-		/* if START_NEXT_GENERATION(color) - start next generation of color 'color' */
+    /* if START_NEXT_GENERATION(color) - start next generation of color 'color' */
 		
-		int color;
-		MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int color;
+    MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
+    /* Process steps :
+       Do the computation of its part of the board;
+       Send cells that were changed on a border to master with message UPDATE_CELL;
+       When done sends FINISHED to master;
+       Listens for UPDATE_CELL messages from master;
+       If cells are in its part of the board updates them (potentially resolves conflicts);
+       listens for FINISHED messages from master.
+    */
+    if(color == RED) {
+      /* Red Process */
+    }
 		
-		
-		/* Process steps :
-			do the computation of its part of the board
-			send cells there were changed on a border to master with message UPDATE_CELL
-			when done sends FINISHED to master
-			listens for UPDATE_CELL messages from master
-			if cells are in its part of the board updates them (potentially resolves conflicts)
-			listens for FINISHED message from master
-		*/
-		if(color == RED) {
-			/* Red Process */
-		}
-		
-		else if(color == BLACK) {
-			/* Black Process */
-		}
+    else if(color == BLACK) {
+      /* Black Process */
+    }
 		
 	
-	/* sends all cells from board to master with UPDATE_CELL */
+    /* sends all cells from board to master with UPDATE_CELL */
 	
-	/* exits */
+    /* exits */
 	
-  
-
-
-
+  }
+  return;
 }
+
+
+/* ACTIONS OF THE MASTER */
+int processMaster(FILE* input, int numservants){
+
+  /*
+    Splits the world in 'numservants' parts.
+    A first approach is to split the rows of the world evenly according the supplied 'numservants',
+    so that each servent process receives, within the possibilities, the same number of rows.
+    Later, it could be implemented a more 'clever' division of work. One that balances better the
+    workload among servent processes so that these finish its portion of work, roughly, at the same
+    time.
+
+    All MPI data copy routines expect that source and destination memory are "flat" linear arrays.
+    Multidimensional C arrays should be stored in row-major order. In row-major storage, a
+    multidimensional array in linear memory is organized such that rows are stored one after the other.
+  */
+
+  return 0;
+}
+
+
 /* MAIN */
 int main(int argc, char **argv){
+  int p, id;
+  
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
@@ -483,40 +503,50 @@ int main(int argc, char **argv){
     exit(1);
   }
 
-  /* INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE*/
+  /* INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE
+     Both master and servants will have access to these variables
+   */
   wolfBreedingPeriod = atoi(argv[2]);
   squirrelBreedingPeriod = atoi(argv[3]);
   wolfStarvationPeriod = atoi(argv[4]);
   noOfGenerations = atoi(argv[5]);
 
+  /* MPI Initialisation. Its important to put this call at the     */
+  /* begining of the program, after variable declarations.         */
   if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
     perror("Error initializing MPI");
     exit(1);
   }
 
-  int p, id;
+  /* Get the number of MPI tasks and the taskid of this task.      */
   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
-  
-        
-  if (id == MASTER_ID) { // Master process
-    loadWorld(input); // Master process loads initial World
-    fprintf(stdout, "Initial world configuration after loading from file:\n");
-    fflush(stdout); /* force it to go out */
-    printWorld2d(stdout);
 
-    /* pressEntertoContinue(); */
-
-    worldLoop(noOfGenerations);
-    printWorld();
-
-    fclose(input); // Close file descriptor
-  }
-  
-  else { // Servant process
-	  processServant() // Actions of what a single servant must do
+  if (id == MASTER_ID) {
+    /* Master process loads initial World */
+    loadWorld(input);
   }
 
+  /* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
+  /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
+  /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
+  /* https://gist.github.com/ehamberg/1263868 */
+
+  /* int *sendbuf; */
+  /* sendbuf = (int *)malloc(worldSideLen*sizeof(int)); */
+  /* MPI_Scatterv(, , , MPI_INT, , 1, , MASTER_ID, MPI_COMM_WORLD); */
+
+  if (id == MASTER_ID) {
+  /* Print the final World */
+  printWorld(); 
+  }
+
+  /* else { // Servant process */
+  /*   processServant(); // Actions of what a single servant must do */
+  /* } */
+
+  /* MPI finalisation. */
   MPI_Finalize();
+  fclose(input); // Close file descriptor
   return 0;
 }
