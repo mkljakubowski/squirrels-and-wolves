@@ -1,3 +1,6 @@
+# parallel make
+export NUMCPUS:=$(shell grep -c ^processor /proc/cpuinfo)
+
 all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
@@ -38,13 +41,13 @@ wolves-squirrels-mpi: wolves-squirrels-mpi.c
 	mpicc -o wolves-squirrels-mpi wolves-squirrels-mpi.c -g -Wall
 
 run-mpi: wolves-squirrels-mpi
-	mpirun -np 10 wolves-squirrels-mpi ex3.in 10 10 10 10
+	mpirun -np $(NUMCPUS) wolves-squirrels-mpi ex3.in 10 10 10 10
 
 wolves-squirrels-mpi+omp: wolves-squirrels-mpi+omp.c
 	mpicc -fopenmp wolves-squirrels-mpi+omp.c -o wolves-squirrels-mpi+omp
 
 run-mpi+omp:
-	 mpirun -np 3 wolves-squirrels-mpi+omp ex3.in 10 10 10 10
+	mpirun -np $(NUMCPUS) wolves-squirrels-mpi+omp ex3.in 10 10 10 10
 
 clean:
 	rm -f wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp
