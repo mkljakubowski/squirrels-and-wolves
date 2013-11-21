@@ -1,4 +1,5 @@
 wolves-squirrels-serial
 wolves-squirrels-omp
 wolves-squirrels-mpi
+wolves-squirrels-mpi+omp
 *~

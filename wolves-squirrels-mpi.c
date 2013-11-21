@@ -18,7 +18,7 @@
 #define RED 1
 #define BLACK 2
 /*
-*/
+ */
 
 /*
   CELL NUMBERING
@@ -229,7 +229,7 @@ void move(cell_t* from, cell_t* to){
   }else{
     copy(from, to);
   }
-  
+
   from->type = stays;
   if(stays == TREE_WITH_SQUIRREL || stays == SQUIRREL){
     from->breeding = 0;
@@ -300,7 +300,7 @@ void update(cell_t* cell){
       move(cell, cell->updates[i]); //else move
     }
   }
-    
+
   cell->updateSize = 0;
 }
 
@@ -365,8 +365,8 @@ void worldLoop(int noOfGenerations){
 	cell = getCell(x, y);
 	if(i % 4 == 0){
 	  cell->starvation--;
-	  cell->breeding++;	  
-	}	
+	  cell->breeding++;
+	}
 	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
 	  switch(cell->type){
 	  case EMPTY: break;
@@ -415,32 +415,32 @@ void printWorld(){
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant() {
   int side;
-	
+
   /* starts listening for NEW_BOARD message -> allocates memory for its board part */
   MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	
-	
+
+
   /* listens for UPDATE_CELL messages, saves messages to board */
-	
+
   /* listens for FINISHED meaning all cells are in place */
-	
+
   /* Servant loop */
   while(1) {
-		
+
     /* if it is FINISHED - all generations are finished - break the loop */
     int isFinished = 0;
     // Go into a blocking-receive waiting
     MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		
+
     if(isFinished) {
       break;
     }
-		
+
     /* if START_NEXT_GENERATION(color) - start next generation of color 'color' */
-		
+
     int color;
     MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		
+
     /* Process steps :
        Do the computation of its part of the board;
        Send cells that were changed on a border to master with message UPDATE_CELL;
@@ -452,101 +452,149 @@ void processServant() {
     if(color == RED) {
       /* Red Process */
     }
-		
+
     else if(color == BLACK) {
       /* Black Process */
     }
-		
-	
+
     /* sends all cells from board to master with UPDATE_CELL */
-	
+
     /* exits */
-	
   }
   return;
 }
 
 
 /* ACTIONS OF THE MASTER */
-int processMaster(FILE* input, int numservants){
+/* int processMaster(FILE* input, int numservants){ */
 
-  /*
-    Splits the world in 'numservants' parts.
-    A first approach is to split the rows of the world evenly according the supplied 'numservants',
-    so that each servent process receives, within the possibilities, the same number of rows.
-    Later, it could be implemented a more 'clever' division of work. One that balances better the
-    workload among servent processes so that these finish its portion of work, roughly, at the same
-    time.
+/*   /\* */
+/*     Splits the world in 'numservants' parts. */
+/*     A first approach is to split the rows of the world evenly according the supplied 'numservants', */
+/*     so that each servent process receives, within the possibilities, the same number of rows. */
+/*     Later, it could be implemented a more 'clever' division of work. One that balances better the */
+/*     workload among servent processes so that these finish its portion of work, roughly, at the same */
+/*     time. */
 
-    All MPI data copy routines expect that source and destination memory are "flat" linear arrays.
-    Multidimensional C arrays should be stored in row-major order. In row-major storage, a
-    multidimensional array in linear memory is organized such that rows are stored one after the other.
-  */
+/*     All MPI data copy routines expect that source and destination memory are "flat" linear arrays. */
+/*     Multidimensional C arrays should be stored in row-major order. In row-major storage, a */
+/*     multidimensional array in linear memory is organized such that rows are stored one after the other. */
+/*   *\/ */
 
+/*   return 0; */
+/* } */
+
+int main(int argc, char **argv) {
+  int size, rank;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int *globaldata=NULL;
+  int localdata;
+  int i;
+
+  if (rank == 0) {
+    globaldata = malloc(size * sizeof(int));
+    for (i=0; i<size; i++)
+      globaldata[i] = 2*i+1;
+
+    printf("Processor %d has data: ", rank);
+    for (i=0; i<size; i++)
+      printf("%d ", globaldata[i]);
+    printf("\n");
+  }
+
+  MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  printf("Processor %d has data %d\n", rank, localdata);
+  localdata *= 2;
+  printf("Processor %d doubling the data, now has %d\n", rank, localdata);
+
+  MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+  if (rank == 0) {
+    printf("Processor %d has data: ", rank);
+    for (i=0; i<size; i++)
+      printf("%d ", globaldata[i]);
+    printf("\n");
+  }
+
+  if (rank == 0)
+    free(globaldata);
+
+  MPI_Finalize();
   return 0;
 }
-
 
 /* MAIN */
-int main(int argc, char **argv){
-  int p, id;
-  
-  if(argc < 6){
-    printf("ERROR: too few arguments.\n");
-    fflush(stdout); /* force it to go out */
-    exit(1);
-  }
-  FILE* input = fopen(argv[1], "r");
-  if(input == NULL){
-    printf("ERROR: file does not exist.\n");
-    fflush(stdout); /* force it to go out */
-    exit(1);
-  }
+/* int main(int argc, char **argv){ */
+/*   int p, id; */
 
-  /* INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE
-     Both master and servants will have access to these variables
-   */
-  wolfBreedingPeriod = atoi(argv[2]);
-  squirrelBreedingPeriod = atoi(argv[3]);
-  wolfStarvationPeriod = atoi(argv[4]);
-  noOfGenerations = atoi(argv[5]);
+/*   if(argc < 6){ */
+/*     printf("ERROR: too few arguments.\n"); */
+/*     fflush(stdout); /\* force it to go out *\/ */
+/*     exit(1); */
+/*   } */
+/*   FILE* input = fopen(argv[1], "r"); */
+/*   if(input == NULL){ */
+/*     printf("ERROR: file does not exist.\n"); */
+/*     fflush(stdout); /\* force it to go out *\/ */
+/*     exit(1); */
+/*   } */
 
-  /* MPI Initialisation. Its important to put this call at the     */
-  /* begining of the program, after variable declarations.         */
-  if (MPI_Init(&argc, &argv) != MPI_SUCCESS) {
-    perror("Error initializing MPI");
-    exit(1);
-  }
+/*   /\* */
+/*     INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE */
+/*     Both master and servants will have access to these variables */
+/*   *\/ */
+/*   wolfBreedingPeriod = atoi(argv[2]); */
+/*   squirrelBreedingPeriod = atoi(argv[3]); */
+/*   wolfStarvationPeriod = atoi(argv[4]); */
+/*   noOfGenerations = atoi(argv[5]); */
 
-  /* Get the number of MPI tasks and the taskid of this task.      */
-  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
-  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
+/*   /\* */
+/*     MPI Initialisation. Its important to put this call at the begining */
+/*     of the program, after variable declarations. */
+/*   *\/ */
+/*   if (MPI_Init(&argc, &argv) != MPI_SUCCESS) { */
+/*     perror("Error initializing MPI"); */
+/*     exit(1); */
+/*   } */
 
-  if (id == MASTER_ID) {
-    /* Master process loads initial World */
-    loadWorld(input);
-  }
+/*   /\* */
+/*     Get the number of MPI tasks and the taskid of this task. */
+/*   *\/ */
+/*   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes */
+/*   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID */
 
-  /* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
-  /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
-  /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
-  /* https://gist.github.com/ehamberg/1263868 */
+/*   if (id == MASTER_ID) { */
+/*     /\* Only master process loads initial World *\/ */
+/*     loadWorld(input); */
+/*   } */
 
-  /* int *sendbuf; */
-  /* sendbuf = (int *)malloc(worldSideLen*sizeof(int)); */
-  /* MPI_Scatterv(, , , MPI_INT, , 1, , MASTER_ID, MPI_COMM_WORLD); */
+/*   /\* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 *\/ */
+/*   /\* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc *\/ */
+/*   /\* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 *\/ */
+/*   /\* https://gist.github.com/ehamberg/1263868 *\/ */
 
-  if (id == MASTER_ID) {
-  /* Print the final World */
-  printWorld(); 
-  }
+/*   /\* int *sendbuf; *\/ */
+/*   /\* sendbuf = (int *)malloc(worldSideLen*sizeof(int)); *\/ */
+/*   /\* MPI_Scatterv(, , , MPI_INT, , 1, , MASTER_ID, MPI_COMM_WORLD); *\/ */
 
-  /* else { // Servant process */
-  /*   processServant(); // Actions of what a single servant must do */
-  /* } */
 
-  /* MPI finalisation. */
-  MPI_Finalize();
-  fclose(input); // Close file descriptor
-  return 0;
-}
+
+/*   if (id == MASTER_ID) { */
+/*   /\* Print the final World *\/ */
+/*   printWorld(); */
+/*   } */
+
+/*   /\* else { // Servant process *\/ */
+/*   /\*   processServant(); // Actions of what a single servant must do *\/ */
+/*   /\* } *\/ */
+
+/*   /\* MPI finalisation. *\/ */
+/*   MPI_Finalize(); */
+/*   fclose(input); // Close file descriptor */
+/*   return 0; */
+/* } */
