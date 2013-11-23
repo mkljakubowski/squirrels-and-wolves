@@ -85,7 +85,7 @@ void loadWorld(FILE* file){
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
   //clear
-#pragma omp parallel for private(i)
+#pragma omp parallel for
   for(i = 0 ; i < worldSize ; i++){
     world[i].type = EMPTY;
     world[i].starvation = 0;
@@ -285,7 +285,7 @@ void update(cell_t* cell){
       move(cell, cell->updates[i]); //else move
     }
   }
-    
+
   cell->updateSize = 0;
 }
 
@@ -355,8 +355,8 @@ void worldLoop(int noOfGenerations){
 	cell = getCell(x, y);
 	if(i % 2 == 0){
 	  cell->starvation--;
-	  cell->breeding++;	  
-	}	
+	  cell->breeding++;
+	}
 	if (((i % 2 == 0) && isRed(x, y)) || ((i % 2 == 1) && !isRed(x, y))) {
 	  switch(cell->type){
 	  case EMPTY: break;
@@ -376,7 +376,7 @@ void worldLoop(int noOfGenerations){
       }
     }
 
-    #pragma omp parallel for private(x,y,cell)
+    #pragma omp parallel for private(x,cell)
     for(y = 0 ; y < worldSideLen ; y++){
       for(x = 0 ; x < worldSideLen ; x++){
 	cell = getCell(x, y);
@@ -394,7 +394,7 @@ void printWorld()
 
   fprintf(stdout, "%d\n", worldSideLen);
   fflush(stdout); /* force it to go out */
-  
+
   // No need of data sharing here : Distribute thread on the row (not on column cause of cache).
   for(x = 0 ; x < worldSideLen ; x++){
     for(y = 0 ; y < worldSideLen ; y++){
@@ -410,7 +410,7 @@ void printWorld()
 
 /* MAIN */
 int main(int argc, char **argv){
-	
+
   double start = omp_get_wtime();
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
