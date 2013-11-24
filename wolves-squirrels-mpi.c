@@ -484,117 +484,134 @@ void processServant() {
 /*   return 0; */
 /* } */
 
-int main(int argc, char **argv) {
-  int size, rank;
+/* int main(int argc, char **argv) { */
+/*   int size, rank; */
 
-  MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+/*   MPI_Init(&argc, &argv); */
+/*   MPI_Comm_size(MPI_COMM_WORLD, &size); */
+/*   MPI_Comm_rank(MPI_COMM_WORLD, &rank); */
 
-  int *globaldata=NULL;
-  int localdata;
-  int i;
+/*   int *globaldata=NULL; */
+/*   int localdata; */
+/*   int i; */
 
-  if (rank == 0) {
-    globaldata = malloc(size * sizeof(int));
-    for (i=0; i<size; i++)
-      globaldata[i] = 2*i+1;
+/*   if (rank == 0) { */
+/*     globaldata = malloc(size * sizeof(int)); */
+/*     for (i=0; i<size; i++) */
+/*       globaldata[i] = 2*i+1; */
 
-    printf("Processor %d has data: ", rank);
-    for (i=0; i<size; i++)
-      printf("%d ", globaldata[i]);
-    printf("\n");
-  }
-
-  MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-  printf("Processor %d has data %d\n", rank, localdata);
-  localdata *= 2;
-  printf("Processor %d doubling the data, now has %d\n", rank, localdata);
-
-  MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-  if (rank == 0) {
-    printf("Processor %d has data: ", rank);
-    for (i=0; i<size; i++)
-      printf("%d ", globaldata[i]);
-    printf("\n");
-  }
-
-  if (rank == 0)
-    free(globaldata);
-
-  MPI_Finalize();
-  return 0;
-}
-
-/* MAIN */
-/* int main(int argc, char **argv){ */
-/*   int p, id; */
-
-/*   if(argc < 6){ */
-/*     printf("ERROR: too few arguments.\n"); */
-/*     fflush(stdout); /\* force it to go out *\/ */
-/*     exit(1); */
-/*   } */
-/*   FILE* input = fopen(argv[1], "r"); */
-/*   if(input == NULL){ */
-/*     printf("ERROR: file does not exist.\n"); */
-/*     fflush(stdout); /\* force it to go out *\/ */
-/*     exit(1); */
+/*     printf("Processor %d has data: ", rank); */
+/*     for (i=0; i<size; i++) */
+/*       printf("%d ", globaldata[i]); */
+/*     printf("\n"); */
 /*   } */
 
-/*   /\* */
-/*     INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE */
-/*     Both master and servants will have access to these variables */
-/*   *\/ */
-/*   wolfBreedingPeriod = atoi(argv[2]); */
-/*   squirrelBreedingPeriod = atoi(argv[3]); */
-/*   wolfStarvationPeriod = atoi(argv[4]); */
-/*   noOfGenerations = atoi(argv[5]); */
+/*   MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
 
-/*   /\* */
-/*     MPI Initialisation. Its important to put this call at the begining */
-/*     of the program, after variable declarations. */
-/*   *\/ */
-/*   if (MPI_Init(&argc, &argv) != MPI_SUCCESS) { */
-/*     perror("Error initializing MPI"); */
-/*     exit(1); */
+/*   printf("Processor %d has data %d\n", rank, localdata); */
+/*   localdata *= 2; */
+/*   printf("Processor %d doubling the data, now has %d\n", rank, localdata); */
+
+/*   MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
+
+/*   if (rank == 0) { */
+/*     printf("Processor %d has data: ", rank); */
+/*     for (i=0; i<size; i++) */
+/*       printf("%d ", globaldata[i]); */
+/*     printf("\n"); */
 /*   } */
 
-/*   /\* */
-/*     Get the number of MPI tasks and the taskid of this task. */
-/*   *\/ */
-/*   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes */
-/*   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID */
+/*   if (rank == 0) */
+/*     free(globaldata); */
 
-/*   if (id == MASTER_ID) { */
-/*     /\* Only master process loads initial World *\/ */
-/*     loadWorld(input); */
-/*   } */
-
-/*   /\* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 *\/ */
-/*   /\* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc *\/ */
-/*   /\* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 *\/ */
-/*   /\* https://gist.github.com/ehamberg/1263868 *\/ */
-
-/*   /\* int *sendbuf; *\/ */
-/*   /\* sendbuf = (int *)malloc(worldSideLen*sizeof(int)); *\/ */
-/*   /\* MPI_Scatterv(, , , MPI_INT, , 1, , MASTER_ID, MPI_COMM_WORLD); *\/ */
-
-
-
-/*   if (id == MASTER_ID) { */
-/*   /\* Print the final World *\/ */
-/*   printWorld(); */
-/*   } */
-
-/*   /\* else { // Servant process *\/ */
-/*   /\*   processServant(); // Actions of what a single servant must do *\/ */
-/*   /\* } *\/ */
-
-/*   /\* MPI finalisation. *\/ */
 /*   MPI_Finalize(); */
-/*   fclose(input); // Close file descriptor */
 /*   return 0; */
 /* } */
+
+/* MAIN */
+int main(int argc, char **argv){
+  int p;	/* Number of processes */
+  int id;	/* Process rank */
+  cell_t *local = NULL;
+
+  if(argc < 6){
+    printf("ERROR: too few arguments.\n");
+    fflush(stdout); /* force it to go out */
+    exit(1);
+  }
+
+  FILE* input = fopen(argv[1], "r");
+  if(input == NULL){
+    printf("ERROR: file does not exist.\n");
+    fflush(stdout); /* force it to go out */
+    exit(1);
+  }
+
+  /*
+    INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE
+    Both master and servants will have access to these variables
+  */
+  wolfBreedingPeriod = atoi(argv[2]);
+  squirrelBreedingPeriod = atoi(argv[3]);
+  wolfStarvationPeriod = atoi(argv[4]);
+  noOfGenerations = atoi(argv[5]);
+
+  /* MPI initialisation. */
+  if(MPI_Init(&argc, &argv) != MPI_SUCCESS){
+    perror("Error initializing MPI");
+    exit(1);
+  }
+
+  /*
+    Get the number of MPI tasks and the id of this task.
+  */
+  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
+  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
+
+  /* printf("Processor %d has var 'wolfBreedingPeriod' value: %d\n", id, wolfBreedingPeriod); */
+  /* printf("Processor %d has var 'squirrelBreedingPeriod' value: %d\n", id, squirrelBreedingPeriod); */
+  /* printf("Processor %d has var 'wolfStarvationPeriod' value: %d\n", id, wolfStarvationPeriod); */
+  /* printf("Processor %d has var 'noOfGenerations' value: %d\n", id, noOfGenerations); */
+
+  if(id == MASTER_ID){
+    /* Only master process loads initial World */
+    loadWorld(input);
+  }
+
+  /* printf("Processor %d has var 'World' value: %p\n", id, world); */
+  /* printf("Processor %d has var 'worldSize' value: %d\n", id, worldSize); */
+
+  /* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
+  /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
+  /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
+  /* https://gist.github.com/ehamberg/1263868 */
+
+  /* create a type for struct cell_t */
+  /* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
+  MPI_Type_create_struct(nitems, blocklengths, offsets, types, &);
+  MPI_Type_commit(&);
+  local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t));
+
+  /* if(id == MASTER_ID){ */
+  /*   MPI_Scatter(world, worldSize/p, MPI_CHAR, */
+  /* 		local, worldSize/p, MPI_CHAR,	/\* each proc receives  into local *\/ */
+  /* 		MASTER_ID ,MPI_COMM_WORLD);	/\* sending process is root, all procs in MPI_COMM_WORLD participate *\/ */
+  /* } */
+
+  /* else { // Servant process */
+  /*   processServant(); // Actions of what a single servant must do */
+  /* } */
+
+  /* Print the final World */
+  if(id == 0){
+    printWorld();
+    free(world);
+  }
+
+  /* MPI finalisation. */
+  MPI_Finalize();
+
+  /*Close file descriptor  */
+  fclose(input);
+  return 0;
+}

@@ -15,15 +15,14 @@ run-serial: wolves-squirrels-serial
 run-serial2: wolves-squirrels-serial
 	./wolves-squirrels-serial ex3.in 10 10 10 1000 > serial
 
-run-omp: wolves-squirrels-omp
-	./wolves-squirrels-omp ex3.in 10 10 10 2000 > parallel
+valgrind-serial: wolves-squirrels-serial
+	valgrind ./wolves-squirrels-serial ex3.in 10 10 10 10 --leak-check=full --track-origins=yes
 
-gdb: wolves-squirrels-serial
+gdb-serial: wolves-squirrels-serial
 	gdb --args ./wolves-squirrels-serial ex3.in 10 10 10 10
 
-time: all
-	time ./wolves-squirrels-serial exBig.in 4 4 4 4
-	time ./wolves-squirrels-omp exBig.in 4 4 4 4
+run-omp: wolves-squirrels-omp
+	./wolves-squirrels-omp ex3.in 10 10 10 2000 > parallel
 
 1:
 	export OMP_NUM_THREADS=1
@@ -37,17 +36,32 @@ time: all
 8:
 	export OMP_NUM_THREADS=8
 
+valgrind-omp: wolves-squirrels-omp
+	valgrind ./wolves-squirrels-omp ex3.in 10 10 10 10 --leak-check=full --track-origins=yes
+
 wolves-squirrels-mpi: wolves-squirrels-mpi.c
 	mpicc -o wolves-squirrels-mpi wolves-squirrels-mpi.c -g -Wall
 
 run-mpi: wolves-squirrels-mpi
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi ex3.in 10 10 10 10
 
+gdb-mpi: wolves-squirrels-serial
+	gdb --args ./wolves-squirrels-mpi ex3.in 10 10 10 10
+
+valgrind-mpi: wolves-squirrels-mpi
+	valgrind ./wolves-squirrels-mpi ex3.in 10 10 10 10 --leak-check=full --track-origins=yes
+
 wolves-squirrels-mpi+omp: wolves-squirrels-mpi+omp.c
-	mpicc -fopenmp wolves-squirrels-mpi+omp.c -o wolves-squirrels-mpi+omp
+	mpicc -fopenmp wolves-squirrels-mpi+omp.c -o wolves-squirrels-mpi+omp -g -Wall
 
 run-mpi+omp:
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi+omp ex3.in 10 10 10 10
+
+time: all
+	time ./wolves-squirrels-serial exBig.in 4 4 4 4
+	time ./wolves-squirrels-omp exBig.in 4 4 4 4
+	time ./wolves-squirrels-mpi exBig.in 4 4 4 4
+	time ./wolves-squirrels-mpi+omp exBig.in 4 4 4 4
 
 clean:
 	rm -f wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp
