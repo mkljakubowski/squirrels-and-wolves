@@ -50,7 +50,7 @@ Algorithm:
 
 5. ================================================ Servant
 Data:
-- array of ~(1/N) cells 
+- array of ~(1/N) cells
 - startX, endX, startY, endY - position of board piece
 Algorithm:
 - starts listening for NEW_BOARD message -> allocates memory for its board part

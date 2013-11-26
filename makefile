@@ -1,7 +1,7 @@
 # parallel make
 export NUMCPUS:=$(shell grep -c ^processor /proc/cpuinfo)
 
-all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp
+all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp wolves-squirrels-mpi-tests MPI_Isend_MPI_Irecv
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
 	gcc -o wolves-squirrels-serial -g -Wall wolves-squirrels-serial.c
@@ -42,10 +42,22 @@ valgrind-omp: wolves-squirrels-omp
 wolves-squirrels-mpi: wolves-squirrels-mpi.c
 	mpicc -o wolves-squirrels-mpi wolves-squirrels-mpi.c -g -Wall
 
+wolves-squirrels-mpi-tests: wolves-squirrels-mpi-tests.c
+	mpicc -o wolves-squirrels-mpi-tests wolves-squirrels-mpi-tests.c -g -Wall
+
+MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
+	mpicc -o MPI_Isend_MPI_Irecv MPI_Isend_MPI_Irecv.c -g -Wall
+
 run-mpi: wolves-squirrels-mpi
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi ex3.in 10 10 10 10
 
-gdb-mpi: wolves-squirrels-serial
+run-mpi-test: wolves-squirrels-mpi-tests
+	mpirun -np $(NUMCPUS) wolves-squirrels-mpi-tests ex3.in 10 10 10 10
+
+run-MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv
+	mpirun -np $(NUMCPUS) MPI_Isend_MPI_Irecv 1024
+
+gdb-mpi: wolves-squirrels-serial-mpi
 	gdb --args ./wolves-squirrels-mpi ex3.in 10 10 10 10
 
 valgrind-mpi: wolves-squirrels-mpi
@@ -64,4 +76,4 @@ time: all
 	time ./wolves-squirrels-mpi+omp exBig.in 4 4 4 4
 
 clean:
-	rm -f wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp
+	rm -f wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp wolves-squirrels-mpi-tests MPI_Isend_MPI_Irecv

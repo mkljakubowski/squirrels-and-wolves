@@ -568,43 +568,16 @@ int main(int argc, char **argv){
   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
 
-  /* printf("Processor %d has var 'wolfBreedingPeriod' value: %d\n", id, wolfBreedingPeriod); */
-  /* printf("Processor %d has var 'squirrelBreedingPeriod' value: %d\n", id, squirrelBreedingPeriod); */
-  /* printf("Processor %d has var 'wolfStarvationPeriod' value: %d\n", id, wolfStarvationPeriod); */
-  /* printf("Processor %d has var 'noOfGenerations' value: %d\n", id, noOfGenerations); */
-
   if(id == MASTER_ID){
     /* Only master process loads initial World */
     loadWorld(input);
   }
 
-  /* printf("Processor %d has var 'World' value: %p\n", id, world); */
-  /* printf("Processor %d has var 'worldSize' value: %d\n", id, worldSize); */
-
-  /* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
-  /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
-  /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
-  /* https://gist.github.com/ehamberg/1263868 */
-
-  /* typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t; */
-
-  /* typedef struct cell_t { */
-  /*   cell_habitant_t type;		//who lives in this cell */
-  /*   int starvation;		//starvation period if wolf */
-  /*   int breeding;		//breeding period of creature */
-  /*   struct cell_t *updates[4];	//list of cells that wanted to update this one in previous subgen */
-  /*   int updateSize; */
-  /* } cell_t; */
-
-  /* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
-  /* http://stackoverflow.com/questions/18453387/sending-c-struct-via-mpi-fails-partially */
-  /* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
-  /* http://stackoverflow.com/questions/13039283/sending-typedef-struct-containing-void-by-creating-mpi-drived-datatype */
   /* create a type for struct cell_t */
   const int nitems=5;
   int block_lengths[5] = {1, 1, 1, 4*sizeof(cell_t *), 1};
-  MPI_Datatype mpi_types[5] = {MPI_INT, MPI_INT, MPI_INT,    ,MPI_INT};
-  MPI_Datatype MPI_cell_type;
+  MPI_Datatype mpi_types[5] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT};
+  MPI_Datatype mpi_cell_type;
   /* MPI_Aint type used to idetify byte displacement of each block (array)*/
   MPI_Aint     offsets[5];
   offsets[0] = offsetof(cell_t, type);
@@ -612,8 +585,8 @@ int main(int argc, char **argv){
   offsets[2] = offsetof(cell_t, breeding);
   offsets[3] = offsetof(cell_t, updates);
   offsets[4] = offsetof(cell_t, updateSize);
-  MPI_Type_create_struct(nitems, block_lengths, offsets, mpi_types, &MPI_cell_type);
-  MPI_Type_commit(&MPI_cell_type);
+  MPI_Type_create_struct(nitems, block_lengths, offsets, mpi_types, &mpi_cell_type);
+  MPI_Type_commit(&mpi_cell_type);
   /* local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t)); */
 
   /* if(id == MASTER_ID){ */
@@ -632,10 +605,11 @@ int main(int argc, char **argv){
     free(world);
   }
 
-  /* MPI finalisation. */
+  MPI_Type_free(&mpi_cell_type);
+  /* MPI finalization. */
   MPI_Finalize();
 
-  /*Close file descriptor  */
+  /* Close file descriptor */
   fclose(input);
   return 0;
 }

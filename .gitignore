@@ -2,4 +2,6 @@ wolves-squirrels-serial
 wolves-squirrels-omp
 wolves-squirrels-mpi
 wolves-squirrels-mpi+omp
+wolves-squirrels-mpi-tests
+MPI_Isend_MPI_Irecv
 *~
