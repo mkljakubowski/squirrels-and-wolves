@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <mpi.h>
+#include <stddef.h>
 
 /* Type of messages */
 #define NEW_BOARD_TAG 100
@@ -532,7 +533,6 @@ void processServant() {
 int main(int argc, char **argv){
   int p;	/* Number of processes */
   int id;	/* Process rank */
-  cell_t *local = NULL;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
@@ -586,11 +586,35 @@ int main(int argc, char **argv){
   /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
   /* https://gist.github.com/ehamberg/1263868 */
 
-  /* create a type for struct cell_t */
+  /* typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t; */
+
+  /* typedef struct cell_t { */
+  /*   cell_habitant_t type;		//who lives in this cell */
+  /*   int starvation;		//starvation period if wolf */
+  /*   int breeding;		//breeding period of creature */
+  /*   struct cell_t *updates[4];	//list of cells that wanted to update this one in previous subgen */
+  /*   int updateSize; */
+  /* } cell_t; */
+
   /* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
-  MPI_Type_create_struct(nitems, blocklengths, offsets, types, &);
-  MPI_Type_commit(&);
-  local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t));
+  /* http://stackoverflow.com/questions/18453387/sending-c-struct-via-mpi-fails-partially */
+  /* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
+  /* http://stackoverflow.com/questions/13039283/sending-typedef-struct-containing-void-by-creating-mpi-drived-datatype */
+  /* create a type for struct cell_t */
+  const int nitems=5;
+  int block_lengths[5] = {1, 1, 1, 4*sizeof(cell_t *), 1};
+  MPI_Datatype mpi_types[5] = {MPI_INT, MPI_INT, MPI_INT,    ,MPI_INT};
+  MPI_Datatype MPI_cell_type;
+  /* MPI_Aint type used to idetify byte displacement of each block (array)*/
+  MPI_Aint     offsets[5];
+  offsets[0] = offsetof(cell_t, type);
+  offsets[1] = offsetof(cell_t, starvation);
+  offsets[2] = offsetof(cell_t, breeding);
+  offsets[3] = offsetof(cell_t, updates);
+  offsets[4] = offsetof(cell_t, updateSize);
+  MPI_Type_create_struct(nitems, block_lengths, offsets, mpi_types, &MPI_cell_type);
+  MPI_Type_commit(&MPI_cell_type);
+  /* local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t)); */
 
   /* if(id == MASTER_ID){ */
   /*   MPI_Scatter(world, worldSize/p, MPI_CHAR, */
