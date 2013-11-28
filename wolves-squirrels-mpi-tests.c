@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -78,9 +79,9 @@ void loadWorld(FILE* file){
 }
 
 
-typedef struct {
-  int ne, n, u, v, process, min, strip, mincost, b;
-} info;
+/* typedef struct { */
+/*   int ne, n, u, v, process, min, strip, mincost, b; */
+/* } info; */
 
 
 int main(int argc, char **argv){
@@ -89,6 +90,8 @@ int main(int argc, char **argv){
   int id;	/* Process rank */
   int i;	/* Iterations */
   int *sendbuff;
+  MPI_Request *sendRequests;
+  MPI_Status *sendStatuses;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
@@ -122,8 +125,6 @@ int main(int argc, char **argv){
   /* Get the number of MPI tasks and the id of this task. */
   MPI_Comm_size(MPI_COMM_WORLD, &p); /* Get number of processes */
   MPI_Comm_rank(MPI_COMM_WORLD, &id); /* Get own ID */
-  MPI_Request *sendRequests;
-  MPI_Status *sendStatuses;
 
   if(id == 0){
     int numServ, quotient, remainder;
@@ -146,8 +147,9 @@ int main(int argc, char **argv){
     /* sends NEW_BOARD(K) to every node */
 
     sendRequests = malloc(numServ * sizeof(MPI_Request));
+    sendStatuses = malloc(numServ * sizeof(MPI_Status));
     for (i = 0; i < numServ; i++) {
-      MPI_Isend(sendbuff[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD, &sendRequests[numServ]);
+      MPI_Isend(sendbuff, 1, MPI_INT, i+1, 0, MPI_COMM_WORLD, &sendRequests[numServ]);
     }
     MPI_Waitall(numServ, sendRequests, sendStatuses);
     /* sends correct part of board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on) */

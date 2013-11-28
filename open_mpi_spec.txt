@@ -75,5 +75,17 @@ the initialization values passed by the command line call. There is no need to p
 an MPI message, since these values are readily available to all copies of the program.
 
 
-7. =============================================== Questions
+7. =============================================== Matrix Decomposition
 
+Three options for decomposition
+1. Rowwise block striping
+– Divide matrix elements into group of rows (same as Floyd’s algorithm)
+– Each process responsible for a contiguous group of either bm=pc or dm=pe rows
+2. Columnwise block striping
+– Divide matrix elements into group of columns
+– Each process responsible for a contiguous group of either bn=pc or dn=pe columns
+3. Checkerboard block decomposition
+– Form a virtual grid
+– Matrix is divided into 2D blocks aligning with the grid
+– Let the grid have r rows and c columns
+– Each process responsible for a block of matrix containing at most dm=re rows and dn=ce columns
