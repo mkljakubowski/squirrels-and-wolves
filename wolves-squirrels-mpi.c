@@ -430,6 +430,9 @@ void processServant() {
 
     /* if it is FINISHED - all generations are finished - break the loop */
     int isFinished = 0;
+    int startX, startY, endX, endY;
+    int x, y;
+    cell_t* cell;
     // Go into a blocking-receive waiting
     MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
@@ -443,7 +446,7 @@ void processServant() {
     MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     /* Process steps :
-       Do the computation of its part of the board;
+       Do the computation of its part of the board; OK
        Send cells that were changed on a border to master with message UPDATE_CELL;
        When done sends FINISHED to master;
        Listens for UPDATE_CELL messages from master;
@@ -451,11 +454,51 @@ void processServant() {
        listens for FINISHED messages from master.
     */
     if(color == RED) {
-      /* Red Process */
+		 /* Red Process */
+		for(y = startY; y < endY; y += 2) {
+			for(x = startX ; x < endX; x += 2) {
+				cell = getCell(x, y);
+				cell->starvation--;
+				cell->breeding++;
+				
+				switch(cell->type){
+					case EMPTY: break;
+					case ICE: break;
+					case TREE: break;
+					case SQUIRREL:
+						doSquirrelStuff(x, y, cell);
+						break;
+					case TREE_WITH_SQUIRREL:
+						doSquirrelStuff(x, y, cell);
+						break;
+					case WOLF:
+						doWolfStuff(x, y, cell);
+						break;
+				}
+			}
+		}
+		/* Send the cells to the master */
+		int buffSize = (endY-startY)*(endX-startX);
+		cell_t* cellBuff[buffSize];
+		for(y = startY; y < endY; y += 2) {
+			for(x = startX ; x < endX; x += 2) {
+				cellBuff[x + 10*y] = getCell(x, y);
+				//  MPI_Send(&cellBuff, buffSize , STRUCTURE CELL, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+		
+		/* Send Finished to Master */
+		int itFinished = 1
+		MPI_send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG); 
+		 
+		/* Listens for UPDATE_CELL messages from master; */
+		// MPI_Recv(SOMETHING);
+		
+		// Now that we have the info for the others cells, we can update
+		update(cell);	
+     
     }
 
     else if(color == BLACK) {
-      /* Black Process */
+      /* Black Process (Same than Red ?)*/
     }
 
     /* sends all cells from board to master with UPDATE_CELL */
