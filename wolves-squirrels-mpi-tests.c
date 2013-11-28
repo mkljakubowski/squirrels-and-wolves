@@ -9,10 +9,10 @@
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
 typedef struct cell_t {
-  cell_habitant_t type;		//who lives in this cell
-  int starvation;		//starvation period if wolf
-  int breeding;		//breeding period of creature
-  // struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
+  cell_habitant_t type;		/* who lives in this cell */
+  int starvation;		/* starvation period if wolf */
+  int breeding;		/* breeding period of creature */
+  /* struct cell_t* updates[4];	list of cells that wanted to update this one in previous subgen */
   int updateSize;
 } cell_t;
 
@@ -53,13 +53,13 @@ void loadWorld(FILE* file){
   size_t len;
   cell_t* cell;
 
-  //init world array
+  /* init world array */
   getline(&buf, &len, file);
   sscanf(buf, "%d", &worldSideLen);
   worldSize = worldSideLen * worldSideLen;
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
-  //clear
+  /* clear */
   for(i = 0; i < worldSize; i++){
     world[i].type = EMPTY;
     world[i].starvation = 0;
@@ -67,7 +67,7 @@ void loadWorld(FILE* file){
     world[i].updateSize = 0;
   }
 
-  //init cells
+  /* init cells */
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &y, &x, &type);
     cell = getCell(x, y);
@@ -84,6 +84,7 @@ typedef struct {
 
 
 int main(int argc, char **argv){
+  FILE* input;	/* File descriptor */
   int p;	/* Number of processes */
   int id;	/* Process rank */
   int i;	/* Iterations */
@@ -95,7 +96,7 @@ int main(int argc, char **argv){
     exit(1);
   }
 
-  FILE* input = fopen(argv[1], "r");
+  input = fopen(argv[1], "r");
   if(input == NULL){
     printf("ERROR: file does not exist.\n");
     fflush(stdout); /* force it to go out */
@@ -116,23 +117,24 @@ int main(int argc, char **argv){
     perror("Error initializing MPI");
     exit(1);
   }
-   MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
 
-  /*
-    Get the number of MPI tasks and the id of this task.
-  */
-  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
-  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
-  MPI_Request* sendRequests;
-  MPI_Status* sendStatuses;
+  /* Get the number of MPI tasks and the id of this task. */
+  MPI_Comm_size(MPI_COMM_WORLD, &p); /* Get number of processes */
+  MPI_Comm_rank(MPI_COMM_WORLD, &id); /* Get own ID */
+  MPI_Request *sendRequests;
+  MPI_Status *sendStatuses;
 
   if(id == 0){
+    int numServ, quotient, remainder;
     /* Only master process loads initial world from file */
     loadWorld(input);
+    /* http://stackoverflow.com/questions/13782694/understanding-dimensions-in-mpi-cart-coords-mpi-dims-create-ordering-of-proce */
     /* Splits the world in p-1 parts */
-    int numServ = p-1;
-    int quotient = worldSideLen/numServ;
-    int remainder = worldSideLen%numServ;
+    /* MPI_DIMS_CREATE */
+    numServ = p-1;
+    quotient = worldSideLen/numServ;
+    remainder = worldSideLen%numServ;
     /* http://stackoverflow.com/questions/13543723/mpi-isend-segmentation-fault */
     /* Memory allocation.                                          */
     sendbuff=(int *)malloc(numServ * sizeof(int));
@@ -140,7 +142,7 @@ int main(int argc, char **argv){
       *(sendbuff+i) = quotient;
     if(remainder != 0)
       for(i = 0; i < remainder; i++)
-	*(sendbuff+i)++;
+	*(sendbuff+i) = *(sendbuff+i) + 1;
     /* sends NEW_BOARD(K) to every node */
 
     sendRequests = malloc(numServ * sizeof(MPI_Request));
@@ -163,17 +165,6 @@ int main(int argc, char **argv){
   /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
   /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
   /* https://gist.github.com/ehamberg/1263868 - Scatterv example*/
-
-  /* typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t; */
-
-  /* typedef struct cell_t { */
-  /*   cell_habitant_t type;		//who lives in this cell */
-  /*   int starvation;		//starvation period if wolf */
-  /*   int breeding;		//breeding period of creature */
-  /*   struct cell_t *updates[4];	//list of cells that wanted to update this one in previous subgen */
-  /*   int updateSize; */
-  /* } cell_t; */
-
   /* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
   /* http://stackoverflow.com/questions/18453387/sending-c-struct-via-mpi-fails-partially */
   /* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
@@ -211,9 +202,9 @@ int main(int argc, char **argv){
   /* /\* . . . *\/ */
 
 
-  /* // Free datatype */
+  /* Free datatype */
   /* MPI_Type_free(&stat_type); */
-  
+
   MPI_Barrier(MPI_COMM_WORLD);
   /* Close down the MPI environment */
   MPI_Finalize();
