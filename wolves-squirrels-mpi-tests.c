@@ -60,7 +60,7 @@ void loadWorld(FILE* file){
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
   //clear
-  for(i = 0 ; i < worldSize ; i++){
+  for(i = 0; i < worldSize; i++){
     world[i].type = EMPTY;
     world[i].starvation = 0;
     world[i].breeding = 0;
@@ -86,6 +86,8 @@ typedef struct {
 int main(int argc, char **argv){
   int p;	/* Number of processes */
   int id;	/* Process rank */
+  int i;	/* Iterations */
+  int *sendbuff;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
@@ -114,16 +116,40 @@ int main(int argc, char **argv){
     perror("Error initializing MPI");
     exit(1);
   }
+   MPI_Barrier(MPI_COMM_WORLD);
 
   /*
     Get the number of MPI tasks and the id of this task.
   */
   MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
   MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
+  MPI_Request* sendRequests;
+  MPI_Status* sendStatuses;
 
   if(id == 0){
-    /* Only master process loads initial World */
+    /* Only master process loads initial world from file */
     loadWorld(input);
+    /* Splits the world in p-1 parts */
+    int numServ = p-1;
+    int quotient = worldSideLen/numServ;
+    int remainder = worldSideLen%numServ;
+    /* http://stackoverflow.com/questions/13543723/mpi-isend-segmentation-fault */
+    /* Memory allocation.                                          */
+    sendbuff=(int *)malloc(numServ * sizeof(int));
+    for(i = 0; i < numServ; i++)
+      *(sendbuff+i) = quotient;
+    if(remainder != 0)
+      for(i = 0; i < remainder; i++)
+	*(sendbuff+i)++;
+    /* sends NEW_BOARD(K) to every node */
+
+    sendRequests = malloc(numServ * sizeof(MPI_Request));
+    for (i = 0; i < numServ; i++) {
+      MPI_Isend(sendbuff[i], 1, MPI_INT, i+1, 0, MPI_COMM_WORLD, &sendRequests[numServ]);
+    }
+    MPI_Waitall(numServ, sendRequests, sendStatuses);
+    /* sends correct part of board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on) */
+    /* sends FINISHED to confirm sending all cells */
   }
 
   /* printf("Processor %d has var 'wolfBreedingPeriod' value: %d\n", id, wolfBreedingPeriod); */
@@ -153,41 +179,42 @@ int main(int argc, char **argv){
   /* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
   /* http://stackoverflow.com/questions/13039283/sending-typedef-struct-containing-void-by-creating-mpi-drived-datatype */
   /* http://stackoverflow.com/questions/18165277/how-to-send-a-variable-of-type-struct-in-mpi-send */
-  info _info;
-  int count; //Says how many kinds of data your structure has
-  count = 1; //1, 'cause you just have int
+  /* info _info; */
+  /* int count; //Says how many kinds of data your structure has */
+  /* count = 1; //1, 'cause you just have int */
 
-  //Says the type of every block
-  MPI_Datatype array_of_types[count];
-  //You just have int
-  array_of_types[0] = MPI_INT;
+  /* //Says the type of every block */
+  /* MPI_Datatype array_of_types[count]; */
+  /* //You just have int */
+  /* array_of_types[0] = MPI_INT; */
 
-  //Says how many elements for block
-  int array_of_blocklengths[count];
-  //You have 8 int
-  array_of_blocklengths[0] = 8;
+  /* //Says how many elements for block */
+  /* int array_of_blocklengths[count]; */
+  /* //You have 8 int */
+  /* array_of_blocklengths[0] = 8; */
 
-  /*Says where every block starts in memory, counting from the beginning of the struct.*/
-  MPI_Aint array_of_displaysments[count];
-  MPI_Aint address1, address2;
-  MPI_Get_address(&_info, &address1);
-  MPI_Get_address(&_info.ne, &address2);
-  array_of_displaysments[0] = address2 - address1;
+  /* /\*Says where every block starts in memory, counting from the beginning of the struct.*\/ */
+  /* MPI_Aint array_of_displaysments[count]; */
+  /* MPI_Aint address1, address2; */
+  /* MPI_Get_address(&_info, &address1); */
+  /* MPI_Get_address(&_info.ne, &address2); */
+  /* array_of_displaysments[0] = address2 - address1; */
 
-  /* Create MPI Datatype and commit */
-  MPI_Datatype stat_type;
-  MPI_Type_create_struct(count, array_of_blocklengths, array_of_displaysments, array_of_types, &stat_type);
-  MPI_Type_commit(&stat_type);
+  /* /\* Create MPI Datatype and commit *\/ */
+  /* MPI_Datatype stat_type; */
+  /* MPI_Type_create_struct(count, array_of_blocklengths, array_of_displaysments, array_of_types, &stat_type); */
+  /* MPI_Type_commit(&stat_type); */
 
-  /* MPI_COMM_WORLD  //Now we are ready to send */
-  /* MPI_Send(&_info, 1, stat_type, dest, tag, MPI_COMM_WORLD); */
+  /* /\* MPI_COMM_WORLD  //Now we are ready to send *\/ */
+  /* /\* MPI_Send(&_info, 1, stat_type, dest, tag, MPI_COMM_WORLD); *\/ */
 
-  /* . . . */
+  /* /\* . . . *\/ */
 
 
-  // Free datatype
-  MPI_Type_free(&stat_type);
-
+  /* // Free datatype */
+  /* MPI_Type_free(&stat_type); */
+  
+  MPI_Barrier(MPI_COMM_WORLD);
   /* Close down the MPI environment */
   MPI_Finalize();
 

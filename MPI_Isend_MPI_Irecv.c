@@ -81,15 +81,13 @@
 
 int main(int argc, char **argv)
 {
-  int          taskid, ntasks;
+  int          taskid, ntasks, i, itask, recvtaskid, buffsize;
   MPI_Status   status;
-  MPI_Request	send_request,recv_request;
-  int          i,itask,recvtaskid;
-  int	        buffsize;
-  double       *sendbuff,*recvbuff;
-  double       sendbuffsum,recvbuffsum;
-  double       sendbuffsums[1024],recvbuffsums[1024];
-  double       inittime,totaltime,recvtime,recvtimes[1024];
+  MPI_Request  send_request, recv_request;
+  double       *sendbuff, *recvbuff;
+  double       sendbuffsum, recvbuffsum;
+  double       sendbuffsums[1024], recvbuffsums[1024];
+  double       inittime, totaltime, recvtime, recvtimes[1024];
 
   /*===============================================================*/
   /* MPI Initialisation. It's important to put this call at the    */
@@ -137,8 +135,8 @@ int main(int argc, char **argv)
   for(i=0;i<buffsize;i++){
     sendbuffsum += sendbuff[i];
   }
-  MPI_Gather(&sendbuffsum,1, MPI_DOUBLE,
-	     sendbuffsums,1, MPI_DOUBLE,
+  MPI_Gather(&sendbuffsum, 1, MPI_DOUBLE,
+	     sendbuffsums, 1, MPI_DOUBLE,
 	     0, MPI_COMM_WORLD);
   if(taskid==0){
     for(itask=0;itask<ntasks;itask++){

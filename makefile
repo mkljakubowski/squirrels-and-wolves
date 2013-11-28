@@ -4,10 +4,10 @@ export NUMCPUS:=$(shell grep -c ^processor /proc/cpuinfo)
 all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp wolves-squirrels-mpi-tests MPI_Isend_MPI_Irecv
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
-	gcc -o wolves-squirrels-serial -g -Wall wolves-squirrels-serial.c
+	gcc -o wolves-squirrels-serial -g -Wall -pedantic wolves-squirrels-serial.c
 
 wolves-squirrels-omp: wolves-squirrels-omp.c
-	gcc -o wolves-squirrels-omp -g -Wall -fopenmp wolves-squirrels-omp.c
+	gcc -o wolves-squirrels-omp -g -Wall -pedantic -fopenmp wolves-squirrels-omp.c
 
 run-serial: wolves-squirrels-serial
 	./wolves-squirrels-serial input 4 4 4 4
@@ -43,10 +43,10 @@ wolves-squirrels-mpi: wolves-squirrels-mpi.c
 	mpicc -o wolves-squirrels-mpi wolves-squirrels-mpi.c -g -Wall
 
 wolves-squirrels-mpi-tests: wolves-squirrels-mpi-tests.c
-	mpicc -o wolves-squirrels-mpi-tests wolves-squirrels-mpi-tests.c -g -Wall
+	mpicc -o wolves-squirrels-mpi-tests wolves-squirrels-mpi-tests.c -g -Wall -pedantic -ansi
 
 MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
-	mpicc -o MPI_Isend_MPI_Irecv MPI_Isend_MPI_Irecv.c -g -Wall
+	mpicc -o MPI_Isend_MPI_Irecv MPI_Isend_MPI_Irecv.c -g -Wall -pedantic -ansi
 
 run-mpi: wolves-squirrels-mpi
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi ex3.in 10 10 10 10
