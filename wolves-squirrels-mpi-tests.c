@@ -143,7 +143,7 @@ int main(int argc, char **argv){
       *(sendbuff+i) = quotient;
     if(remainder != 0)
       for(i = 0; i < remainder; i++)
-	*(sendbuff+i) = *(sendbuff+i) + 1;
+	(*(sendbuff+i))++;
     /* sends NEW_BOARD(K) to every node */
 
     sendRequests = malloc(numServ * sizeof(MPI_Request));
