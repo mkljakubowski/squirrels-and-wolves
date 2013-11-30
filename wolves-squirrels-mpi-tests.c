@@ -84,26 +84,27 @@ void loadWorld(FILE* file){
 /* } info; */
 
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
   FILE* input;	/* File descriptor */
-  int p;	/* Number of processes */
-  int id;	/* Process rank */
-  int i;	/* Iterations */
-  int *sendbuff;
-  MPI_Request *sendRequests;
-  MPI_Status *sendStatuses;
+  int nprocs;	/* Number of processes */
+  int rank;	/* Process rank */
+  int tag;
+  /* int i;	/\* Iterations *\/ */
+  MPI_Request req;
+  MPI_Status status;
+  float sendbuf, recvbuf;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   input = fopen(argv[1], "r");
   if(input == NULL){
     printf("ERROR: file does not exist.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   /*
@@ -118,100 +119,77 @@ int main(int argc, char **argv){
   /* MPI initialisation. */
   if(MPI_Init(&argc, &argv) != MPI_SUCCESS){
     perror("Error initializing MPI");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
-  MPI_Barrier(MPI_COMM_WORLD);
+  /* MPI_Barrier(MPI_COMM_WORLD); */
 
-  /* Get the number of MPI tasks and the id of this task. */
-  MPI_Comm_size(MPI_COMM_WORLD, &p); /* Get number of processes */
-  MPI_Comm_rank(MPI_COMM_WORLD, &id); /* Get own ID */
+  /* Get the number of MPI tasks and the rank of this task. */
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs); /* Get number of processes */
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank); /* Get own RANK */
 
-  if(id == 0){
-    int numServ, quotient, remainder;
+  if (nprocs < 2) {
+    fprintf(stderr,"%s: Require at least two processors.\n", argv[0]);
+    MPI_Finalize();
+    exit(EXIT_FAILURE);
+  }
+  tag = 1;
+  if(rank == 0){
     /* Only master process loads initial world from file */
-    loadWorld(input);
-    /* http://stackoverflow.com/questions/13782694/understanding-dimensions-in-mpi-cart-coords-mpi-dims-create-ordering-of-proce */
+    /* loadWorld(input); */
     /* Splits the world in p-1 parts */
     /* MPI_DIMS_CREATE */
-    numServ = p-1;
-    quotient = worldSideLen/numServ;
-    remainder = worldSideLen%numServ;
-    /* http://stackoverflow.com/questions/13543723/mpi-isend-segmentation-fault */
+    /* numServ = nprocs-1; */
+    /* quotient = worldSideLen/numServ; */
+    /* remainder = worldSideLen%numServ; */
     /* Memory allocation.                                          */
-    sendbuff=(int *)malloc(numServ * sizeof(int));
-    for(i = 0; i < numServ; i++)
-      *(sendbuff+i) = quotient;
-    if(remainder != 0)
-      for(i = 0; i < remainder; i++)
-	(*(sendbuff+i))++;
+    /* sendbuff=(int *)malloc(numServ * sizeof(int)); */
+    /* for(i = 0; i < numServ; i++) */
+    /*   *(sendbuff+i) = quotient; */
+    /* if(remainder != 0) */
+    /*   for(i = 0; i < remainder; i++) */
+    /* 	(*(sendbuff+i))++; */
     /* sends NEW_BOARD(K) to every node */
-
-    sendRequests = malloc(numServ * sizeof(MPI_Request));
-    sendStatuses = malloc(numServ * sizeof(MPI_Status));
-    for (i = 0; i < numServ; i++) {
-      MPI_Isend(sendbuff, 1, MPI_INT, i+1, 0, MPI_COMM_WORLD, &sendRequests[numServ]);
-    }
-    MPI_Waitall(numServ, sendRequests, sendStatuses);
+    /* sendRequests = malloc(numServ * sizeof(MPI_Request)); */
+    /* sendStatuses = malloc(numServ * sizeof(MPI_Status)); */
+    /* for (i = 0; i < numServ; i++) { */
+    /*   MPI_Isend(sendbuff, 1, MPI_INT, i+1, 0, MPI_COMM_WORLD, &sendRequests[numServ]); */
+    /* } */
+    /* MPI_Waitall(numServ, sendRequests, sendStatuses); */
     /* sends correct part of board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on) */
     /* sends FINISHED to confirm sending all cells */
+    sendbuf = 9.0;
+    MPI_Send(&sendbuf, 1, MPI_FLOAT, 1, tag, MPI_COMM_WORLD);
+  } else {
+    MPI_Irecv(&recvbuf, 1, MPI_FLOAT, 0, tag, MPI_COMM_WORLD, &req);
+    MPI_Wait(&req, &status);
+    printf("recvbuf = %f\n", recvbuf);
   }
 
-  /* printf("Processor %d has var 'wolfBreedingPeriod' value: %d\n", id, wolfBreedingPeriod); */
-  /* printf("Processor %d has var 'squirrelBreedingPeriod' value: %d\n", id, squirrelBreedingPeriod); */
-  /* printf("Processor %d has var 'wolfStarvationPeriod' value: %d\n", id, wolfStarvationPeriod); */
-  /* printf("Processor %d has var 'noOfGenerations' value: %d\n", id, noOfGenerations); */
-  /* printf("Processor %d has var 'World' value: %p\n", id, world); */
-  /* printf("Processor %d has var 'worldSize' value: %d\n", id, worldSize); */
+  /* printf("Processor %d has var 'wolfBreedingPeriod' value: %d\n", rank, wolfBreedingPeriod); */
+  /* printf("Processor %d has var 'squirrelBreedingPeriod' value: %d\n", rank, squirrelBreedingPeriod); */
+  /* printf("Processor %d has var 'wolfStarvationPeriod' value: %d\n", rank, wolfStarvationPeriod); */
+  /* printf("Processor %d has var 'noOfGenerations' value: %d\n", rank, noOfGenerations); */
+  /* printf("Processor %d has var 'World' value: %p\n", rank, world); */
+  /* printf("Processor %d has var 'worldSize' value: %d\n", rank, worldSize); */
 
-  /* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
-  /* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
-  /* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
-  /* https://gist.github.com/ehamberg/1263868 - Scatterv example*/
-  /* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
-  /* http://stackoverflow.com/questions/18453387/sending-c-struct-via-mpi-fails-partially */
-  /* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
-  /* http://stackoverflow.com/questions/13039283/sending-typedef-struct-containing-void-by-creating-mpi-drived-datatype */
-  /* http://stackoverflow.com/questions/18165277/how-to-send-a-variable-of-type-struct-in-mpi-send */
-  /* info _info; */
-  /* int count; //Says how many kinds of data your structure has */
-  /* count = 1; //1, 'cause you just have int */
-
-  /* //Says the type of every block */
-  /* MPI_Datatype array_of_types[count]; */
-  /* //You just have int */
-  /* array_of_types[0] = MPI_INT; */
-
-  /* //Says how many elements for block */
-  /* int array_of_blocklengths[count]; */
-  /* //You have 8 int */
-  /* array_of_blocklengths[0] = 8; */
-
-  /* /\*Says where every block starts in memory, counting from the beginning of the struct.*\/ */
-  /* MPI_Aint array_of_displaysments[count]; */
-  /* MPI_Aint address1, address2; */
-  /* MPI_Get_address(&_info, &address1); */
-  /* MPI_Get_address(&_info.ne, &address2); */
-  /* array_of_displaysments[0] = address2 - address1; */
-
-  /* /\* Create MPI Datatype and commit *\/ */
-  /* MPI_Datatype stat_type; */
-  /* MPI_Type_create_struct(count, array_of_blocklengths, array_of_displaysments, array_of_types, &stat_type); */
-  /* MPI_Type_commit(&stat_type); */
-
-  /* /\* MPI_COMM_WORLD  //Now we are ready to send *\/ */
-  /* /\* MPI_Send(&_info, 1, stat_type, dest, tag, MPI_COMM_WORLD); *\/ */
-
-  /* /\* . . . *\/ */
-
-
-  /* Free datatype */
-  /* MPI_Type_free(&stat_type); */
 
   MPI_Barrier(MPI_COMM_WORLD);
   /* Close down the MPI environment */
   MPI_Finalize();
 
   /* Close file descriptor  */
-  fclose(input);
+  /* fclose(input); */
   return EXIT_SUCCESS;
 }
+
+/* MPI_Scatter: http://www.mpi-forum.org/docs/mpi-1.1/mpi-11-html/node71.html#Node71 */
+/* http://stackoverflow.com/questions/20031250/mpi-scatter-of-2d-array-and-malloc */
+/* http://stackoverflow.com/questions/9269399/sending-blocks-of-2d-array-in-c-using-mpi/9271753#9271753 */
+/* https://gist.github.com/ehamberg/1263868 - Scatterv example*/
+/* http://stackoverflow.com/questions/9864510/struct-serialization-in-c-and-sending-over-mpi */
+/* http://stackoverflow.com/questions/18453387/sending-c-struct-via-mpi-fails-partially */
+/* http://stackoverflow.com/questions/10419990/creating-an-mpi-datatype-for-a-structure-containing-pointers */
+/* http://stackoverflow.com/questions/13039283/sending-typedef-struct-containing-void-by-creating-mpi-drived-datatype */
+/* http://stackoverflow.com/questions/18165277/how-to-send-a-variable-of-type-struct-in-mpi-send */
+/* http://stackoverflow.com/questions/13782694/understanding-dimensions-in-mpi-cart-coords-mpi-dims-create-ordering-of-proce */
+/* http://stackoverflow.com/questions/13543723/mpi-isend-segmentation-fault */

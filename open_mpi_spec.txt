@@ -78,7 +78,7 @@ an MPI message, since these values are readily available to all copies of the pr
 7. =============================================== Matrix Decomposition
 
 Three options for decomposition
-1. Rowwise block striping
+1. Rowwise block striped decomposition
 – Divide matrix elements into group of rows (same as Floyd’s algorithm)
 – Each process responsible for a contiguous group of either bm=pc or dm=pe rows
 2. Columnwise block striping
