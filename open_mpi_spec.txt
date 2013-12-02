@@ -53,9 +53,12 @@ Data:
 - array of ~(1/N) cells
 - startX, endX, startY, endY - position of board piece
 Algorithm:
+
+/---- All of these parts can be skipped by giving the full board to each servant (less efficient but more easy, and time is missing...)
 - starts listening for NEW_BOARD message -> allocates memory for its board part
 - listens for UPDATE_CELL messages, saves messages to board
 - listens for FINISHED meaning all cells are in place
+/----
 - in loop:
   - listens for message
     - if it is FINISHED - all generations are finished - break the loop
