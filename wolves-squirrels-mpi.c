@@ -589,7 +589,7 @@ void processMaster(FILE* input){
     for(rank = 1; rank < remainder; rank++)
       slaveSideLen[rank]++;
 
-  for(rank = 0; j < nTasks; rank++) {
+  for(rank = 0; rank < nTasks; rank++) {
     printf("%d \n", slaveSideLen[rank]);
   }
 
