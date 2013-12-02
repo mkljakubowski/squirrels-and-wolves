@@ -491,6 +491,8 @@ void processServant() {
 			for(x = startX ; x < endX; x += 2) {
 				cellBuff[x + 10*y] = getCell(x, y);
 				//  MPI_Send(&cellBuff, buffSize , STRUCTURE CELL, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+			}
+		}
 		
 		/* Send Finished to Master */
 		int itFinished = 1
@@ -499,7 +501,7 @@ void processServant() {
 		/* Listens for UPDATE_CELL messages from master; */
 		cell_t* rcvCellBuffer[buffSize]
 		// MPI_Recv(SOMETHING);
-		
+		MPI_Recv(&rcvCellBuffer, buffSize, MPI_STRUCT, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
 		// Now that we have the info for the others cells, we can update
 		
 		for(y = startY; y < endY; y += 2) {
