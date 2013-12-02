@@ -11,10 +11,11 @@
 #define UPDATE_CELL_TAG 101
 #define FINISHED_TAG 102
 #define START_NEXT_GENERATION_TAG 103
-#define WORLD_SIDE_LEN_TAG 104
+/* #define WORLD_SIDE_LEN_TAG 104 */
 
 /* Type of nodes */
 #define MASTER_ID 0
+
 /* #define SERVANT_ID 1 */
 
 /* ATTENTION!! SERVANT_ID and RED cannot have the same value = 1  */
@@ -418,7 +419,7 @@ void printWorld(){
 
 
 /* ACTIONS OF ONE SINGLE SERVANT */
-void processServant() {
+void processServant(FILE* input, int rank) {
   MPI_Status status;
   int buffer, slaveWorldSize, x, y, startX, startY, endX, endY, color;
   cell_t* slaveWorld = NULL;
@@ -427,6 +428,9 @@ void processServant() {
   /// No need of all of this because we can load the input for each servants for the initialisation
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+  /* Load initial world from file */
+  loadWorld(input);
 
   /* Servant loop */
   while (1){
@@ -437,23 +441,25 @@ void processServant() {
     /* Check the tag of the received message. */
     /* If it is FINISHED - all generations are finished - break the loop */
     if(status.MPI_TAG == FINISHED_TAG){
-      printf("Slave is processing tag 'FINISHED_TAG'.\n");
+      printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
       printf("Master told me to break the loop.\n\n");
+      /* free resources */
+      free(slaveWorld);
       return;
     }
-    else if(status.MPI_TAG == WORLD_SIDE_LEN_TAG) {
-      printf("Slave is processing tag 'WORLD_SIDE_LEN_TAG'.\n");
-      printf("Master told me that the 'worldSideLen' is %d.\n\n", buffer);
-      fflush(stdout); /* force it to go out */
-      worldSideLen = buffer;
-    }
+    /* else if(status.MPI_TAG == WORLD_SIDE_LEN_TAG) { */
+    /*   printf("Slave is processing tag 'WORLD_SIDE_LEN_TAG'.\n"); */
+    /*   printf("Master told me that the 'worldSideLen' is %d.\n\n", buffer); */
+    /*   fflush(stdout); /\* force it to go out *\/ */
+    /*   worldSideLen = buffer; */
+    /* } */
     else if(status.MPI_TAG == NEW_BOARD_TAG){
-      printf("Slave is processing tag 'NEW_BOARD_TAG'.\n");
+      printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
       printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, buffer);
-      printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
-      fflush(stdout); /* force it to go out */
       slaveWorldSize = worldSideLen * buffer;
       slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
+      printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
+      fflush(stdout); /* force it to go out */
     }
     /* Listens for UPDATE_CELL messages, saves messages to board */
 
@@ -513,7 +519,7 @@ void processServant() {
       for(y = startY; y < endY; y += 2) {
 	for(x = startX ; x < endX; x += 2) {
 	  cellBuff[x + 10*y] = getCell(x, y);
-	  //  MPI_Send(&cellBuff, buffSize , STRUCTURE CELL, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	}
       }
 
@@ -552,18 +558,18 @@ void processMaster(FILE* input){
   int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
   /* MPI_Status status; */
 
-  /* Only master process loads initial world from file */
+  /* Load initial world from file */
   loadWorld(input);
 
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
 
   /* Tell all the slaves the size of the worldSideLen sending an message with the WORLD_SIDE_LEN_TAG. */
-  for(rank = 1; rank < nTasks; ++rank){
+  /* for(rank = 1; rank < nTasks; ++rank){ */
 
-    /* Send it to each rank */
-    MPI_Send(&worldSideLen, 1, MPI_INT, rank, WORLD_SIDE_LEN_TAG, MPI_COMM_WORLD);
-  }
+  /*   /\* Send it to each rank *\/ */
+  /*   MPI_Send(&worldSideLen, 1, MPI_INT, rank, WORLD_SIDE_LEN_TAG, MPI_COMM_WORLD); */
+  /* } */
 
 
   /* Splits the world by the number of slaves */
@@ -632,7 +638,7 @@ int main(int argc, char **argv){
   if(rank == MASTER_ID){
     processMaster(input);
   }else{
-    processServant();
+    processServant(input, rank);
   }
 
   /* Shut down MPI */
