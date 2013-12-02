@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <mpi.h>
 #include <stddef.h>
+#include <string.h>
 
 /* Type of messages */
 #define NEW_BOARD_TAG 100
@@ -23,8 +24,6 @@
 /* Colors */
 #define RED 1
 #define BLACK 2
-/*
- */
 
 /*
   CELL NUMBERING
@@ -35,17 +34,17 @@
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
 typedef struct cell_t {
-cell_habitant_t type;		//who lives in this cell
-int starvation;		//starvation period if wolf
-int breeding;		//breeding period of creature
-struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
-int updateSize;
+  cell_habitant_t type;		//who lives in this cell
+  int starvation;		//starvation period if wolf
+  int breeding;		//breeding period of creature
+  struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
+  int updateSize;
 } cell_t;
 
 //list of neighbours of some cell
 typedef struct neighbours_t {
-cell_t** cells;
-int size;
+  cell_t** cells;
+  int size;
 } neighbours_t;
 
 /* GLOBALS */
@@ -59,150 +58,150 @@ int noOfGenerations = 0;
 
 /* FUNCTIONS */
 cell_t* getCell(int x, int y){
-/* printf ("X: %d; Y: %d\n", x, y); */
-assert(x < worldSideLen && x >= 0);
-assert(y < worldSideLen && y >= 0);
-return &world[y * worldSideLen + x];
+  /* printf ("X: %d; Y: %d\n", x, y); */
+  assert(x < worldSideLen && x >= 0);
+  assert(y < worldSideLen && y >= 0);
+  return &world[y * worldSideLen + x];
 }
 
 cell_t* getCellAndCheckBoundries(int x, int y){
-if(x < 0 || x >= worldSideLen || y < 0 || y >= worldSideLen)
-  return NULL;
-return getCell(x,y);
+  if(x < 0 || x >= worldSideLen || y < 0 || y >= worldSideLen)
+    return NULL;
+  return getCell(x,y);
 }
 
 cell_habitant_t charToCellType(char c){
-switch(c){
- case 'w': return WOLF;
- case 's': return SQUIRREL;
- case 'i': return ICE;
- case 't': return TREE;
- case '$': return TREE_WITH_SQUIRREL;
- default : assert(0 == 1); return EMPTY;
-}
+  switch(c){
+  case 'w': return WOLF;
+  case 's': return SQUIRREL;
+  case 'i': return ICE;
+  case 't': return TREE;
+  case '$': return TREE_WITH_SQUIRREL;
+  default : assert(0 == 1); return EMPTY;
+  }
 }
 
 char cellTypeTochar(cell_habitant_t type){
-switch (type){
- case WOLF: 			return 'w';
- case SQUIRREL: 		return 's';
- case ICE: 			return 'x';
- case TREE: 			return 't';
- case TREE_WITH_SQUIRREL: 	return '$';
- case EMPTY: 			return ' ';
- default: assert(0 == 1);
-}
+  switch (type){
+  case WOLF: 			return 'w';
+  case SQUIRREL: 		return 's';
+  case ICE: 			return 'x';
+  case TREE: 			return 't';
+  case TREE_WITH_SQUIRREL: 	return '$';
+  case EMPTY: 			return ' ';
+  default: assert(0 == 1);
+  }
 }
 
 void loadWorld(FILE* file){
-char* buf = NULL;
-char type;
-int x, y, i;
-size_t len;
-cell_t* cell;
+  char* buf = NULL;
+  char type;
+  int x, y, i;
+  size_t len;
+  cell_t* cell;
 
-/* init world array */
-getline(&buf, &len, file);
-sscanf(buf, "%d", &worldSideLen);
-worldSize = worldSideLen * worldSideLen;
-world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
+  /* init world array */
+  getline(&buf, &len, file);
+  sscanf(buf, "%d", &worldSideLen);
+  worldSize = worldSideLen * worldSideLen;
+  world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
-/* clear */
-for(i = 0; i < worldSize; i++){
-world[i].type = EMPTY;
-world[i].starvation = 0;
-world[i].breeding = 0;
-world[i].updateSize = 0;
-}
+  /* clear */
+  for(i = 0; i < worldSize; i++){
+    world[i].type = EMPTY;
+    world[i].starvation = 0;
+    world[i].breeding = 0;
+    world[i].updateSize = 0;
+  }
 
-/* init cells */
-while(getline(&buf, &len, file) != -1){
-sscanf(buf, "%d %d %c", &y, &x, &type);
-cell = getCell(x, y);
-cell->type = charToCellType(type);
-cell->breeding = 0;
-cell->starvation = wolfStarvationPeriod;
-}
+  /* init cells */
+  while(getline(&buf, &len, file) != -1){
+    sscanf(buf, "%d %d %c", &y, &x, &type);
+    cell = getCell(x, y);
+    cell->type = charToCellType(type);
+    cell->breeding = 0;
+    cell->starvation = wolfStarvationPeriod;
+  }
 }
 
 int isRed(int x, int y){
-if((x%2 == 0 && y%2==0) || (x%2 == 1 && y%2 == 1))
-  return 1;
-return 0;
+  if((x%2 == 0 && y%2==0) || (x%2 == 1 && y%2 == 1))
+    return 1;
+  return 0;
 }
 
 cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
-if(cell == NULL) return NULL;
-if(cell->type == ICE) return NULL;
-if(cell->type == TREE_WITH_SQUIRREL) return NULL;
-if(cell->type == TREE && type == WOLF) return NULL;
-return cell;
+  if(cell == NULL) return NULL;
+  if(cell->type == ICE) return NULL;
+  if(cell->type == TREE_WITH_SQUIRREL) return NULL;
+  if(cell->type == TREE && type == WOLF) return NULL;
+  return cell;
 }
 
 //returns in correct order up -> right -> down -> left
 neighbours_t getActiveCellsAroundFor(int x, int y, cell_habitant_t type){
-cell_t* up, *right, *down, *left;
-up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
-right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
-down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
-left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
+  cell_t* up, *right, *down, *left;
+  up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
+  right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
+  down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
+  left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
 
-int size = 0;
-if(up != NULL) size++;
-if(right != NULL) size++;
-if(down != NULL) size++;
-if(left != NULL) size++;
+  int size = 0;
+  if(up != NULL) size++;
+  if(right != NULL) size++;
+  if(down != NULL) size++;
+  if(left != NULL) size++;
 
-neighbours_t neighbours;
-neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
-neighbours.size = size;
+  neighbours_t neighbours;
+  neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
+  neighbours.size = size;
 
-int pos = 0;
-if(down != NULL) neighbours.cells[pos++] = down;
-if(right != NULL) neighbours.cells[pos++] = right;
-if(up != NULL) neighbours.cells[pos++] = up;
-if(left != NULL) neighbours.cells[pos++] = left;
+  int pos = 0;
+  if(down != NULL) neighbours.cells[pos++] = down;
+  if(right != NULL) neighbours.cells[pos++] = right;
+  if(up != NULL) neighbours.cells[pos++] = up;
+  if(left != NULL) neighbours.cells[pos++] = left;
 
-return neighbours;
+  return neighbours;
 }
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
 void checkIfShouldDie(cell_t* who){
-if(who->type == WOLF && who->starvation <= 0){
-who->type = EMPTY;
-}
+  if(who->type == WOLF && who->starvation <= 0){
+    who->type = EMPTY;
+  }
 }
 
 //return who should stay on the current cell
 cell_habitant_t checkIfShouldBreed(cell_t* who){
-if(who->type == WOLF && who->breeding >= wolfBreedingPeriod){
-who->breeding = 0;
-return WOLF;
-}else if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod){
-who->breeding = 0;
-return SQUIRREL;
-}else if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod){
-who->breeding = 0;
-return TREE_WITH_SQUIRREL;
-}else if(who->type == TREE_WITH_SQUIRREL){
-return TREE;
-}
-return EMPTY;
+  if(who->type == WOLF && who->breeding >= wolfBreedingPeriod){
+    who->breeding = 0;
+    return WOLF;
+  }else if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+    who->breeding = 0;
+    return SQUIRREL;
+  }else if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+    who->breeding = 0;
+    return TREE_WITH_SQUIRREL;
+  }else if(who->type == TREE_WITH_SQUIRREL){
+    return TREE;
+  }
+  return EMPTY;
 }
 
 void copy(cell_t* from, cell_t* to){
-to->breeding = from->breeding;
-to->starvation = from->starvation;
-to->type = from->type;
+  to->breeding = from->breeding;
+  to->starvation = from->starvation;
+  to->type = from->type;
 }
 
 void eat(cell_t* wolf, cell_t* squirrel){
-cell_habitant_t stays = checkIfShouldBreed(wolf);
-wolf->starvation = wolfStarvationPeriod;
-copy(wolf, squirrel);
- wolf->type = stays;
- wolf->breeding = 0;
- wolf->starvation = wolfStarvationPeriod;
+  cell_habitant_t stays = checkIfShouldBreed(wolf);
+  wolf->starvation = wolfStarvationPeriod;
+  copy(wolf, squirrel);
+  wolf->type = stays;
+  wolf->breeding = 0;
+  wolf->starvation = wolfStarvationPeriod;
 }
 
 //this gets complicated, it should handle every possibility(even conflicts) except when wolf eats a squirrel
@@ -457,6 +456,9 @@ void processServant(int rank) {
       slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
       printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
       fflush(stdout); /* force it to go out */
+
+      memcpy(slaveWorld, world, slaveWorldSize * sizeof(cell_t));
+
     }
     /* Listens for UPDATE_CELL messages, saves messages to board */
 
@@ -640,6 +642,9 @@ int main(int argc, char **argv){
 
   /* Shut down MPI */
   MPI_Finalize();
+
+  /* Release resources */
+  free(world);
 
   /* Close file descriptor */
   fclose(input);
