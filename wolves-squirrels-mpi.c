@@ -419,7 +419,7 @@ void printWorld(){
 
 
 /* ACTIONS OF ONE SINGLE SERVANT */
-void processServant(FILE* input, int rank) {
+void processServant(int rank) {
   MPI_Status status;
   int buffer, slaveWorldSize, x, y, startX, startY, endX, endY, color;
   cell_t* slaveWorld = NULL;
@@ -428,9 +428,6 @@ void processServant(FILE* input, int rank) {
   /// No need of all of this because we can load the input for each servants for the initialisation
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-  /* Load initial world from file */
-  loadWorld(input);
 
   /* Servant loop */
   while (1){
@@ -554,12 +551,9 @@ void processServant(FILE* input, int rank) {
 
 
 /* ACTIONS OF THE MASTER */
-void processMaster(FILE* input){
+void processMaster(){
   int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
   /* MPI_Status status; */
-
-  /* Load initial world from file */
-  loadWorld(input);
 
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
@@ -633,12 +627,15 @@ int main(int argc, char **argv){
     exit(EXIT_FAILURE);
   }
 
+  /* Load initial world from file */
+  loadWorld(input);
+
   /* Find out my identity in the default communicator */
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if(rank == MASTER_ID){
-    processMaster(input);
+    processMaster();
   }else{
-    processServant(input, rank);
+    processServant(rank);
   }
 
   /* Shut down MPI */
