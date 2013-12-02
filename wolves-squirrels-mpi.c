@@ -586,8 +586,8 @@ void processMaster(FILE* input){
   for(rank = 1; rank < nTasks; rank++)
     *(slaveSideLen+rank) = quotient;
   if(remainder > 0)
-    for(rank = 1; rank < remainder; rank++)
-      slaveSideLen[rank]++;
+    for(rank = 1; rank < remainder+1; rank++)
+      (*(slaveSideLen+rank))++;
 
   for(rank = 0; rank < nTasks; rank++) {
     printf("%d \n", slaveSideLen[rank]);
