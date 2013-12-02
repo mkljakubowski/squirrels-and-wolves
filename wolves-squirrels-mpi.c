@@ -589,6 +589,10 @@ void processMaster(FILE* input){
     for(rank = 1; rank < remainder; rank++)
       slaveSideLen[rank]++;
 
+  for(rank = 0; j < nTasks; rank++) {
+    printf("%d \n", slaveSideLen[rank]);
+  }
+
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
     buffer =  *(slaveSideLen+rank);
