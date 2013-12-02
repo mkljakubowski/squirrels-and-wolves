@@ -577,8 +577,9 @@ void processMaster(FILE* input){
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
 
-  printf("quotient: %d", quotient);
-  printf("remainder: %d", remainder);
+  printf("quotient: %d\n", quotient);
+  printf("remainder: %d\n", remainder);
+  fflush(stdout); /* force it to go out */
 
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
   *slaveSideLen = 0;
@@ -591,8 +592,9 @@ void processMaster(FILE* input){
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
     buffer =  *(slaveSideLen+rank);
+    fflush(stdout); /* force it to go out */
 
-    printf("buffer: %d", buffer);
+    printf("buffer: %d\n", buffer);
     /* Send it to each rank */
     MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
