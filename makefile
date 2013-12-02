@@ -51,14 +51,17 @@ MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
 run-mpi: wolves-squirrels-mpi
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi ex3.in 10 10 10 10
 
-run-mpi-test: wolves-squirrels-mpi-tests
+run-mpi-tests: wolves-squirrels-mpi-tests
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi-tests ex3.in 10 10 10 10
 
 run-MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv
 	mpirun -np $(NUMCPUS) MPI_Isend_MPI_Irecv 1024
 
-gdb-mpi: wolves-squirrels-serial-mpi
+gdb-mpi: wolves-squirrels-mpi
 	gdb --args ./wolves-squirrels-mpi ex3.in 10 10 10 10
+
+gdb-mpi-tests: wolves-squirrels-mpi-tests
+	mpirun -np $(NUMCPUS) xterm -e gdb --args ./wolves-squirrels-mpi-tests ex3.in 10 10 10 10
 
 valgrind-mpi: wolves-squirrels-mpi
 	valgrind ./wolves-squirrels-mpi ex3.in 10 10 10 10 --leak-check=full --track-origins=yes

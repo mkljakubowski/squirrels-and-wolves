@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -10,10 +11,13 @@
 #define UPDATE_CELL_TAG 101
 #define FINISHED_TAG 102
 #define START_NEXT_GENERATION_TAG 103
+#define DIE_TAG 4
 
 /* Type of nodes */
 #define MASTER_ID 0
 #define SERVANT_ID 1
+
+
 
 /* Colors */
 #define RED 1
@@ -96,21 +100,21 @@ void loadWorld(FILE* file){
   size_t len;
   cell_t* cell;
 
-  //init world array
+  /* init world array */
   getline(&buf, &len, file);
   sscanf(buf, "%d", &worldSideLen);
   worldSize = worldSideLen * worldSideLen;
   world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
-  //clear
-  for(i = 0 ; i < worldSize ; i++){
+  /* clear */
+  for(i = 0; i < worldSize; i++){
     world[i].type = EMPTY;
     world[i].starvation = 0;
     world[i].breeding = 0;
     world[i].updateSize = 0;
   }
 
-  //init cells
+  /* init cells */
   while(getline(&buf, &len, file) != -1){
     sscanf(buf, "%d %d %c", &y, &x, &type);
     cell = getCell(x, y);
@@ -526,150 +530,82 @@ void processServant() {
 
 
 /* ACTIONS OF THE MASTER */
-/* int processMaster(FILE* input, int numservants){ */
+void processMaster(FILE* input){
+  int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
+  /* MPI_Status status; */
 
-/*   /\* */
-/*     Splits the world in 'numservants' parts. */
-/*     A first approach is to split the rows of the world evenly according the supplied 'numservants', */
-/*     so that each servent process receives, within the possibilities, the same number of rows. */
-/*     Later, it could be implemented a more 'clever' division of work. One that balances better the */
-/*     workload among servent processes so that these finish its portion of work, roughly, at the same */
-/*     time. */
+  /* Only master process loads initial world from file */
+  loadWorld(input);
 
-/*     All MPI data copy routines expect that source and destination memory are "flat" linear arrays. */
-/*     Multidimensional C arrays should be stored in row-major order. In row-major storage, a */
-/*     multidimensional array in linear memory is organized such that rows are stored one after the other. */
-/*   *\/ */
+  /* Find out how many processes there are in the default communicator */
+  MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
 
-/*   return 0; */
-/* } */
+  /* Splits the world by the number of slaves */
+  /* Consider doing this more correctly using function MPI_DIMS_CREATE */
+  quotient = worldSideLen/(nTasks-1);
+  remainder = worldSideLen%(nTasks-1);
 
-/* int main(int argc, char **argv) { */
-/*   int size, rank; */
+  slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
+  *slaveSideLen = 0;
+  for(rank = 1; rank < nTasks; rank++)
+    *(slaveSideLen+rank) = quotient;
+  if(remainder != 0)
+    for(rank = 1; rank < remainder; rank++)
+      (*(slaveSideLen+rank))++;
 
-/*   MPI_Init(&argc, &argv); */
-/*   MPI_Comm_size(MPI_COMM_WORLD, &size); */
-/*   MPI_Comm_rank(MPI_COMM_WORLD, &rank); */
+  /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
+   for(rank = 1; rank < nTasks; ++rank){
+     buffer =  *(slaveSideLen+rank);
+     /* Send it to each rank */
+     MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+  }
 
-/*   int *globaldata=NULL; */
-/*   int localdata; */
-/*   int i; */
-
-/*   if (rank == 0) { */
-/*     globaldata = malloc(size * sizeof(int)); */
-/*     for (i=0; i<size; i++) */
-/*       globaldata[i] = 2*i+1; */
-
-/*     printf("Processor %d has data: ", rank); */
-/*     for (i=0; i<size; i++) */
-/*       printf("%d ", globaldata[i]); */
-/*     printf("\n"); */
-/*   } */
-
-/*   MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
-
-/*   printf("Processor %d has data %d\n", rank, localdata); */
-/*   localdata *= 2; */
-/*   printf("Processor %d doubling the data, now has %d\n", rank, localdata); */
-
-/*   MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
-
-/*   if (rank == 0) { */
-/*     printf("Processor %d has data: ", rank); */
-/*     for (i=0; i<size; i++) */
-/*       printf("%d ", globaldata[i]); */
-/*     printf("\n"); */
-/*   } */
-
-/*   if (rank == 0) */
-/*     free(globaldata); */
-
-/*   MPI_Finalize(); */
-/*   return 0; */
-/* } */
+}
 
 /* MAIN */
 int main(int argc, char **argv){
-  int p;	/* Number of processes */
-  int id;	/* Process rank */
+  FILE *input;	/* File descriptor */
+  int rank;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  FILE* input = fopen(argv[1], "r");
+  input = fopen(argv[1], "r");
   if(input == NULL){
     printf("ERROR: file does not exist.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  /*
-    INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE
-    Both master and servants will have access to these variables
-  */
+  /* Initialize global variables with values passed by the command line */
   wolfBreedingPeriod = atoi(argv[2]);
   squirrelBreedingPeriod = atoi(argv[3]);
   wolfStarvationPeriod = atoi(argv[4]);
   noOfGenerations = atoi(argv[5]);
 
-  /* MPI initialisation. */
+  /* Initialize MPI */
   if(MPI_Init(&argc, &argv) != MPI_SUCCESS){
     perror("Error initializing MPI");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  /*
-    Get the number of MPI tasks and the id of this task.
-  */
-  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
-  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
-
-  if(id == MASTER_ID){
-    /* Only master process loads initial World */
-    loadWorld(input);
+  /* Find out my identity in the default communicator */
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank == 0){
+    processMaster(input);
+  }else{
+    processServant();
   }
 
-  /* create a type for struct cell_t */
-  const int nitems=5;
-  int block_lengths[5] = {1, 1, 1, 4*sizeof(cell_t *), 1};
-  MPI_Datatype mpi_types[5] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT};
-  MPI_Datatype mpi_cell_type;
-  /* MPI_Aint type used to idetify byte displacement of each block (array)*/
-  MPI_Aint     offsets[5];
-  offsets[0] = offsetof(cell_t, type);
-  offsets[1] = offsetof(cell_t, starvation);
-  offsets[2] = offsetof(cell_t, breeding);
-  offsets[3] = offsetof(cell_t, updates);
-  offsets[4] = offsetof(cell_t, updateSize);
-  MPI_Type_create_struct(nitems, block_lengths, offsets, mpi_types, &mpi_cell_type);
-  MPI_Type_commit(&mpi_cell_type);
-  /* local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t)); */
-
-  /* if(id == MASTER_ID){ */
-  /*   MPI_Scatter(world, worldSize/p, MPI_CHAR, */
-  /* 		local, worldSize/p, MPI_CHAR,	/\* each proc receives  into local *\/ */
-  /* 		MASTER_ID ,MPI_COMM_WORLD);	/\* sending process is root, all procs in MPI_COMM_WORLD participate *\/ */
-  /* } */
-
-  /* else { // Servant process */
-  /*	    loadWorld(input); */
-  /*   processServant(); // Actions of what a single servant must do */
-  /* } */
-
-  /* Print the final World */
-  if(id == 0){
-    printWorld();
-    free(world);
-  }
-
-  MPI_Type_free(&mpi_cell_type);
-  /* MPI finalization. */
+  /* Shut down MPI */
   MPI_Finalize();
 
   /* Close file descriptor */
   fclose(input);
-  return 0;
+
+  /* Exit with sucess */
+  return EXIT_SUCCESS;
 }
