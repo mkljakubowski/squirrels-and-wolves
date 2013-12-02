@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -10,10 +11,13 @@
 #define UPDATE_CELL_TAG 101
 #define FINISHED_TAG 102
 #define START_NEXT_GENERATION_TAG 103
+#define WORLD_SIDE_LEN_TAG 104
 
 /* Type of nodes */
 #define MASTER_ID 0
-#define SERVANT_ID 1
+/* #define SERVANT_ID 1 */
+
+/* ATTENTION!! SERVANT_ID and RED cannot have the same value = 1  */
 
 /* Colors */
 #define RED 1
@@ -30,17 +34,17 @@
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
 typedef struct cell_t {
-  cell_habitant_t type;		//who lives in this cell
-  int starvation;		//starvation period if wolf
-  int breeding;		//breeding period of creature
-  struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
-  int updateSize;
+cell_habitant_t type;		//who lives in this cell
+int starvation;		//starvation period if wolf
+int breeding;		//breeding period of creature
+struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
+int updateSize;
 } cell_t;
 
 //list of neighbours of some cell
 typedef struct neighbours_t {
-  cell_t** cells;
-  int size;
+cell_t** cells;
+int size;
 } neighbours_t;
 
 /* GLOBALS */
@@ -54,150 +58,150 @@ int noOfGenerations = 0;
 
 /* FUNCTIONS */
 cell_t* getCell(int x, int y){
-  /* printf ("X: %d; Y: %d\n", x, y); */
-  assert(x < worldSideLen && x >= 0);
-  assert(y < worldSideLen && y >= 0);
-  return &world[y * worldSideLen + x];
+/* printf ("X: %d; Y: %d\n", x, y); */
+assert(x < worldSideLen && x >= 0);
+assert(y < worldSideLen && y >= 0);
+return &world[y * worldSideLen + x];
 }
 
 cell_t* getCellAndCheckBoundries(int x, int y){
-  if(x < 0 || x >= worldSideLen || y < 0 || y >= worldSideLen)
-    return NULL;
-  return getCell(x,y);
+if(x < 0 || x >= worldSideLen || y < 0 || y >= worldSideLen)
+  return NULL;
+return getCell(x,y);
 }
 
 cell_habitant_t charToCellType(char c){
-  switch(c){
-  case 'w': return WOLF;
-  case 's': return SQUIRREL;
-  case 'i': return ICE;
-  case 't': return TREE;
-  case '$': return TREE_WITH_SQUIRREL;
-  default : assert(0 == 1); return EMPTY;
-  }
+switch(c){
+ case 'w': return WOLF;
+ case 's': return SQUIRREL;
+ case 'i': return ICE;
+ case 't': return TREE;
+ case '$': return TREE_WITH_SQUIRREL;
+ default : assert(0 == 1); return EMPTY;
+}
 }
 
 char cellTypeTochar(cell_habitant_t type){
-  switch (type){
-  case WOLF: 			return 'w';
-  case SQUIRREL: 		return 's';
-  case ICE: 			return 'x';
-  case TREE: 			return 't';
-  case TREE_WITH_SQUIRREL: 	return '$';
-  case EMPTY: 			return ' ';
-  default: assert(0 == 1);
-  }
+switch (type){
+ case WOLF: 			return 'w';
+ case SQUIRREL: 		return 's';
+ case ICE: 			return 'x';
+ case TREE: 			return 't';
+ case TREE_WITH_SQUIRREL: 	return '$';
+ case EMPTY: 			return ' ';
+ default: assert(0 == 1);
+}
 }
 
 void loadWorld(FILE* file){
-  char* buf = NULL;
-  char type;
-  int x, y, i;
-  size_t len;
-  cell_t* cell;
+char* buf = NULL;
+char type;
+int x, y, i;
+size_t len;
+cell_t* cell;
 
-  //init world array
-  getline(&buf, &len, file);
-  sscanf(buf, "%d", &worldSideLen);
-  worldSize = worldSideLen * worldSideLen;
-  world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
+/* init world array */
+getline(&buf, &len, file);
+sscanf(buf, "%d", &worldSideLen);
+worldSize = worldSideLen * worldSideLen;
+world = (cell_t*)(malloc(worldSize * sizeof(cell_t)));
 
-  //clear
-  for(i = 0 ; i < worldSize ; i++){
-    world[i].type = EMPTY;
-    world[i].starvation = 0;
-    world[i].breeding = 0;
-    world[i].updateSize = 0;
-  }
+/* clear */
+for(i = 0; i < worldSize; i++){
+world[i].type = EMPTY;
+world[i].starvation = 0;
+world[i].breeding = 0;
+world[i].updateSize = 0;
+}
 
-  //init cells
-  while(getline(&buf, &len, file) != -1){
-    sscanf(buf, "%d %d %c", &y, &x, &type);
-    cell = getCell(x, y);
-    cell->type = charToCellType(type);
-    cell->breeding = 0;
-    cell->starvation = wolfStarvationPeriod;
-  }
+/* init cells */
+while(getline(&buf, &len, file) != -1){
+sscanf(buf, "%d %d %c", &y, &x, &type);
+cell = getCell(x, y);
+cell->type = charToCellType(type);
+cell->breeding = 0;
+cell->starvation = wolfStarvationPeriod;
+}
 }
 
 int isRed(int x, int y){
-  if((x%2 == 0 && y%2==0) || (x%2 == 1 && y%2 == 1))
-    return 1;
-  return 0;
+if((x%2 == 0 && y%2==0) || (x%2 == 1 && y%2 == 1))
+  return 1;
+return 0;
 }
 
 cell_t* checkIfCellHabitable(cell_t* cell, cell_habitant_t type){
-  if(cell == NULL) return NULL;
-  if(cell->type == ICE) return NULL;
-  if(cell->type == TREE_WITH_SQUIRREL) return NULL;
-  if(cell->type == TREE && type == WOLF) return NULL;
-  return cell;
+if(cell == NULL) return NULL;
+if(cell->type == ICE) return NULL;
+if(cell->type == TREE_WITH_SQUIRREL) return NULL;
+if(cell->type == TREE && type == WOLF) return NULL;
+return cell;
 }
 
 //returns in correct order up -> right -> down -> left
 neighbours_t getActiveCellsAroundFor(int x, int y, cell_habitant_t type){
-  cell_t* up, *right, *down, *left;
-  up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
-  right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
-  down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
-  left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
+cell_t* up, *right, *down, *left;
+up = checkIfCellHabitable(getCellAndCheckBoundries(x, y+1), type);
+right = checkIfCellHabitable(getCellAndCheckBoundries(x+1, y), type);
+down = checkIfCellHabitable(getCellAndCheckBoundries(x, y-1), type);
+left = checkIfCellHabitable(getCellAndCheckBoundries(x-1, y), type);
 
-  int size = 0;
-  if(up != NULL) size++;
-  if(right != NULL) size++;
-  if(down != NULL) size++;
-  if(left != NULL) size++;
+int size = 0;
+if(up != NULL) size++;
+if(right != NULL) size++;
+if(down != NULL) size++;
+if(left != NULL) size++;
 
-  neighbours_t neighbours;
-  neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
-  neighbours.size = size;
+neighbours_t neighbours;
+neighbours.cells = (cell_t**)(malloc(size * sizeof(cell_t*)));
+neighbours.size = size;
 
-  int pos = 0;
-  if(down != NULL) neighbours.cells[pos++] = down;
-  if(right != NULL) neighbours.cells[pos++] = right;
-  if(up != NULL) neighbours.cells[pos++] = up;
-  if(left != NULL) neighbours.cells[pos++] = left;
+int pos = 0;
+if(down != NULL) neighbours.cells[pos++] = down;
+if(right != NULL) neighbours.cells[pos++] = right;
+if(up != NULL) neighbours.cells[pos++] = up;
+if(left != NULL) neighbours.cells[pos++] = left;
 
-  return neighbours;
+return neighbours;
 }
 
 /* ================================================= CELL BEHAVIOURS ================================================= */
 void checkIfShouldDie(cell_t* who){
-  if(who->type == WOLF && who->starvation <= 0){
-    who->type = EMPTY;
-  }
+if(who->type == WOLF && who->starvation <= 0){
+who->type = EMPTY;
+}
 }
 
 //return who should stay on the current cell
 cell_habitant_t checkIfShouldBreed(cell_t* who){
-  if(who->type == WOLF && who->breeding >= wolfBreedingPeriod){
-    who->breeding = 0;
-    return WOLF;
-  }else if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod){
-    who->breeding = 0;
-    return SQUIRREL;
-  }else if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod){
-    who->breeding = 0;
-    return TREE_WITH_SQUIRREL;
-  }else if(who->type == TREE_WITH_SQUIRREL){
-    return TREE;
-  }
-  return EMPTY;
+if(who->type == WOLF && who->breeding >= wolfBreedingPeriod){
+who->breeding = 0;
+return WOLF;
+}else if(who->type == SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+who->breeding = 0;
+return SQUIRREL;
+}else if(who->type == TREE_WITH_SQUIRREL && who->breeding >= squirrelBreedingPeriod){
+who->breeding = 0;
+return TREE_WITH_SQUIRREL;
+}else if(who->type == TREE_WITH_SQUIRREL){
+return TREE;
+}
+return EMPTY;
 }
 
 void copy(cell_t* from, cell_t* to){
-  to->breeding = from->breeding;
-  to->starvation = from->starvation;
-  to->type = from->type;
+to->breeding = from->breeding;
+to->starvation = from->starvation;
+to->type = from->type;
 }
 
 void eat(cell_t* wolf, cell_t* squirrel){
-  cell_habitant_t stays = checkIfShouldBreed(wolf);
-  wolf->starvation = wolfStarvationPeriod;
-  copy(wolf, squirrel);
-  wolf->type = stays;
-  wolf->breeding = 0;
-  wolf->starvation = wolfStarvationPeriod;
+cell_habitant_t stays = checkIfShouldBreed(wolf);
+wolf->starvation = wolfStarvationPeriod;
+copy(wolf, squirrel);
+ wolf->type = stays;
+ wolf->breeding = 0;
+ wolf->starvation = wolfStarvationPeriod;
 }
 
 //this gets complicated, it should handle every possibility(even conflicts) except when wolf eats a squirrel
@@ -415,43 +419,62 @@ void printWorld(){
 
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant() {
-  int side;
+  MPI_Status status;
+  int buffer, slaveWorldSize, x, y, startX, startY, endX, endY, color;
+  cell_t* slaveWorld = NULL;
+  cell_t* cell;
 
   /// No need of all of this because we can load the input for each servants for the initialisation
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+  /* Servant loop */
+  while (1){
 
-  ///* listens for UPDATE_CELL messages, saves messages to board */
+    /* Receive a message from the master */
+    MPI_Recv(&buffer, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-  ///* listens for FINISHED meaning all cells are in place */
-
-  ///* Servant loop */
-  while(1) {
-
-    /* if it is FINISHED - all generations are finished - break the loop */
-    int isFinished = 0;
-    int startX, startY, endX, endY;
-    int x, y;
-    cell_t* cell;
-    // Go into a blocking-receive waiting
-    MPI_Recv(&isFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    if(isFinished) {
-      break;
+    /* Check the tag of the received message. */
+    /* If it is FINISHED - all generations are finished - break the loop */
+    if(status.MPI_TAG == FINISHED_TAG){
+      printf("Slave is processing tag 'FINISHED_TAG'.\n");
+      printf("Master told me to break the loop.\n\n");
+      return;
     }
+    else if(status.MPI_TAG == WORLD_SIDE_LEN_TAG) {
+      printf("Slave is processing tag 'WORLD_SIDE_LEN_TAG'.\n");
+      printf("Master told me that the 'worldSideLen' is %d.\n\n", buffer);
+      fflush(stdout); /* force it to go out */
+      worldSideLen = buffer;
+    }
+    else if(status.MPI_TAG == NEW_BOARD_TAG){
+      printf("Slave is processing tag 'NEW_BOARD_TAG'.\n");
+      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, buffer);
+      printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
+      fflush(stdout); /* force it to go out */
+      slaveWorldSize = worldSideLen * buffer;
+      slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
+    }
+    /* Listens for UPDATE_CELL messages, saves messages to board */
+
+    /* Listens for FINISHED meaning all cells are in place */
+
+  }
+
+
+  while(0){
 
     /* START_NEXT_GENERATION(genInfo) - start next generation */
 
     int genInfo[5]; // genInfo : startX, startY, endX, endY, color
     MPI_Recv(&genInfo, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	
-	startX = genInfo[0];
-	startY = genInfo[1];
-	endX = genInfo[2];
-	endY = genInfo[3];
-	color = genInfo[4];
-	
+
+    startX = genInfo[0];
+    startY = genInfo[1];
+    endX = genInfo[2];
+    endY = genInfo[3];
+    color = genInfo[4];
+
     /* Process steps :
        Do the computation of its part of the board; OK
        Send cells that were changed on a border to master with message UPDATE_CELL; OK
@@ -461,56 +484,56 @@ void processServant() {
        listens for FINISHED messages from master. OK
     */
     if(color == RED || color == BLACK) { // Useless condition. With this loop and the inc of +2 we stay on the right color.
-		
-		for(y = startY; y < endY; y += 2) {
-			for(x = startX ; x < endX; x += 2) {
-				cell = getCell(x, y);
-				cell->starvation--;
-				cell->breeding++;
-				
-				switch(cell->type){
-					case EMPTY: break;
-					case ICE: break;
-					case TREE: break;
-					case SQUIRREL:
-						doSquirrelStuff(x, y, cell);
-						break;
-					case TREE_WITH_SQUIRREL:
-						doSquirrelStuff(x, y, cell);
-						break;
-					case WOLF:
-						doWolfStuff(x, y, cell);
-						break;
-				}
-			}
-		}
-		/* Send the cells to the master */
-		int buffSize = (endY-startY)*(endX-startX);
-		cell_t* cellBuff[buffSize];
-		for(y = startY; y < endY; y += 2) {
-			for(x = startX ; x < endX; x += 2) {
-				cellBuff[x + 10*y] = getCell(x, y);
-				//  MPI_Send(&cellBuff, buffSize , STRUCTURE CELL, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
-			}
-		}
-		
-		/* Send Finished to Master */
-		int itFinished = 1
-		MPI_send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG); 
-		 
-		/* Listens for UPDATE_CELL messages from master; */
-		cell_t* rcvCellBuffer[buffSize]
-		// MPI_Recv(SOMETHING);
-		MPI_Recv(&rcvCellBuffer, buffSize, MPI_STRUCT, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
-		// Now that we have the info for the others cells, we can update
-		
-		for(y = startY; y < endY; y += 2) {
-			for(x = startX ; x < endX; x += 2) {
-				//cell = getCell(x, y);
-				update(rcvCellBuffer[x + 10*y]);
-			}
-		}
-     
+
+      for(y = startY; y < endY; y += 2) {
+	for(x = startX ; x < endX; x += 2) {
+	  cell = getCell(x, y);
+	  cell->starvation--;
+	  cell->breeding++;
+
+	  switch(cell->type){
+	  case EMPTY: break;
+	  case ICE: break;
+	  case TREE: break;
+	  case SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case TREE_WITH_SQUIRREL:
+	    doSquirrelStuff(x, y, cell);
+	    break;
+	  case WOLF:
+	    doWolfStuff(x, y, cell);
+	    break;
+	  }
+	}
+      }
+      /* Send the cells to the master */
+      int buffSize = (endY-startY)*(endX-startX);
+      cell_t* cellBuff[buffSize];
+      for(y = startY; y < endY; y += 2) {
+	for(x = startX ; x < endX; x += 2) {
+	  cellBuff[x + 10*y] = getCell(x, y);
+	  //  MPI_Send(&cellBuff, buffSize , STRUCTURE CELL, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	}
+      }
+
+      /* Send Finished to Master */
+      int itFinished = 1;
+      MPI_Send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD);
+
+      /* Listens for UPDATE_CELL messages from master; */
+      cell_t* rcvCellBuffer[buffSize];
+      // MPI_Recv(SOMETHING);
+      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
+      // Now that we have the info for the others cells, we can update
+
+      for(y = startY; y < endY; y += 2) {
+	for(x = startX ; x < endX; x += 2) {
+	  //cell = getCell(x, y);
+	  update(rcvCellBuffer[x + 10*y]);
+	}
+      }
+
     }
 
     else if(color == BLACK) {
@@ -519,157 +542,105 @@ void processServant() {
 
     /* sends all cells from board to master with UPDATE_CELL */
 
-    /* exits */
   }
   return;
 }
 
 
 /* ACTIONS OF THE MASTER */
-/* int processMaster(FILE* input, int numservants){ */
+void processMaster(FILE* input){
+  int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
+  /* MPI_Status status; */
 
-/*   /\* */
-/*     Splits the world in 'numservants' parts. */
-/*     A first approach is to split the rows of the world evenly according the supplied 'numservants', */
-/*     so that each servent process receives, within the possibilities, the same number of rows. */
-/*     Later, it could be implemented a more 'clever' division of work. One that balances better the */
-/*     workload among servent processes so that these finish its portion of work, roughly, at the same */
-/*     time. */
+  /* Only master process loads initial world from file */
+  loadWorld(input);
 
-/*     All MPI data copy routines expect that source and destination memory are "flat" linear arrays. */
-/*     Multidimensional C arrays should be stored in row-major order. In row-major storage, a */
-/*     multidimensional array in linear memory is organized such that rows are stored one after the other. */
-/*   *\/ */
+  /* Find out how many processes there are in the default communicator */
+  MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
 
-/*   return 0; */
-/* } */
+  /* Tell all the slaves the size of the worldSideLen sending an message with the WORLD_SIDE_LEN_TAG. */
+  for(rank = 1; rank < nTasks; ++rank){
 
-/* int main(int argc, char **argv) { */
-/*   int size, rank; */
+    /* Send it to each rank */
+    MPI_Send(&worldSideLen, 1, MPI_INT, rank, WORLD_SIDE_LEN_TAG, MPI_COMM_WORLD);
+  }
 
-/*   MPI_Init(&argc, &argv); */
-/*   MPI_Comm_size(MPI_COMM_WORLD, &size); */
-/*   MPI_Comm_rank(MPI_COMM_WORLD, &rank); */
 
-/*   int *globaldata=NULL; */
-/*   int localdata; */
-/*   int i; */
+  /* Splits the world by the number of slaves */
+  /* Consider doing this more correctly using function MPI_DIMS_CREATE */
+  quotient = worldSideLen/(nTasks-1);
+  remainder = worldSideLen%(nTasks-1);
 
-/*   if (rank == 0) { */
-/*     globaldata = malloc(size * sizeof(int)); */
-/*     for (i=0; i<size; i++) */
-/*       globaldata[i] = 2*i+1; */
+  slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
+  *slaveSideLen = 0;
+  for(rank = 1; rank < nTasks; rank++)
+    *(slaveSideLen+rank) = quotient;
+  if(remainder != 0)
+    for(rank = 1; rank < remainder; rank++)
+      (*(slaveSideLen+rank))++;
 
-/*     printf("Processor %d has data: ", rank); */
-/*     for (i=0; i<size; i++) */
-/*       printf("%d ", globaldata[i]); */
-/*     printf("\n"); */
-/*   } */
+  /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
+  for(rank = 1; rank < nTasks; ++rank){
+    buffer =  *(slaveSideLen+rank);
+    /* Send it to each rank */
+    MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+  }
 
-/*   MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
 
-/*   printf("Processor %d has data %d\n", rank, localdata); */
-/*   localdata *= 2; */
-/*   printf("Processor %d doubling the data, now has %d\n", rank, localdata); */
 
-/*   MPI_Gather(&localdata, 1, MPI_INT, globaldata, 1, MPI_INT, 0, MPI_COMM_WORLD); */
-
-/*   if (rank == 0) { */
-/*     printf("Processor %d has data: ", rank); */
-/*     for (i=0; i<size; i++) */
-/*       printf("%d ", globaldata[i]); */
-/*     printf("\n"); */
-/*   } */
-
-/*   if (rank == 0) */
-/*     free(globaldata); */
-
-/*   MPI_Finalize(); */
-/*   return 0; */
-/* } */
+  /* Everything is done. Tell all the slaves to break their loops and exit sending an message with the FINISHED_TAG. */
+  for(rank = 1; rank < nTasks; ++rank){
+    buffer =  0;
+    /* Send it to each rank */
+    MPI_Send(&buffer, 1, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
+  }
+  return;
+}
 
 /* MAIN */
 int main(int argc, char **argv){
-  int p;	/* Number of processes */
-  int id;	/* Process rank */
+  FILE *input;	/* File descriptor */
+  int rank;
 
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  FILE* input = fopen(argv[1], "r");
+  input = fopen(argv[1], "r");
   if(input == NULL){
     printf("ERROR: file does not exist.\n");
     fflush(stdout); /* force it to go out */
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  /*
-    INITIALIZE GLOBAL VARIABLES WITH VALUES PASSED BY THE COMMAND LINE
-    Both master and servants will have access to these variables
-  */
+  /* Initialize global variables with values passed by the command line */
   wolfBreedingPeriod = atoi(argv[2]);
   squirrelBreedingPeriod = atoi(argv[3]);
   wolfStarvationPeriod = atoi(argv[4]);
   noOfGenerations = atoi(argv[5]);
 
-  /* MPI initialisation. */
+  /* Initialize MPI */
   if(MPI_Init(&argc, &argv) != MPI_SUCCESS){
     perror("Error initializing MPI");
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
-  /*
-    Get the number of MPI tasks and the id of this task.
-  */
-  MPI_Comm_size(MPI_COMM_WORLD, &p); // Get number of processes
-  MPI_Comm_rank(MPI_COMM_WORLD, &id); // Get own ID
-
-  if(id == MASTER_ID){
-    /* Only master process loads initial World */
-    loadWorld(input);
+  /* Find out my identity in the default communicator */
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank == MASTER_ID){
+    processMaster(input);
+  }else{
+    processServant();
   }
 
-  /* create a type for struct cell_t */
-  const int nitems=5;
-  int block_lengths[5] = {1, 1, 1, 4*sizeof(cell_t *), 1};
-  MPI_Datatype mpi_types[5] = {MPI_INT, MPI_INT, MPI_INT, MPI_INT};
-  MPI_Datatype mpi_cell_type;
-  /* MPI_Aint type used to idetify byte displacement of each block (array)*/
-  MPI_Aint     offsets[5];
-  offsets[0] = offsetof(cell_t, type);
-  offsets[1] = offsetof(cell_t, starvation);
-  offsets[2] = offsetof(cell_t, breeding);
-  offsets[3] = offsetof(cell_t, updates);
-  offsets[4] = offsetof(cell_t, updateSize);
-  MPI_Type_create_struct(nitems, block_lengths, offsets, mpi_types, &mpi_cell_type);
-  MPI_Type_commit(&mpi_cell_type);
-  /* local = (cell_t*)(malloc((worldSize/p)*sizeof(cell_t)); */
-
-  /* if(id == MASTER_ID){ */
-  /*   MPI_Scatter(world, worldSize/p, MPI_CHAR, */
-  /* 		local, worldSize/p, MPI_CHAR,	/\* each proc receives  into local *\/ */
-  /* 		MASTER_ID ,MPI_COMM_WORLD);	/\* sending process is root, all procs in MPI_COMM_WORLD participate *\/ */
-  /* } */
-
-  /* else { // Servant process */
-  /*	    loadWorld(input); */
-  /*   processServant(); // Actions of what a single servant must do */
-  /* } */
-
-  /* Print the final World */
-  if(id == 0){
-    printWorld();
-    free(world);
-  }
-
-  MPI_Type_free(&mpi_cell_type);
-  /* MPI finalization. */
+  /* Shut down MPI */
   MPI_Finalize();
 
   /* Close file descriptor */
   fclose(input);
-  return 0;
+
+  /* Exit with sucess */
+  return EXIT_SUCCESS;
 }
