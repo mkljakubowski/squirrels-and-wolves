@@ -576,11 +576,6 @@ void processMaster(FILE* input){
   /* Consider doing this more correctly using function MPI_DIMS_CREATE */
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
-
-  printf("quotient: %d\n", quotient);
-  printf("remainder: %d\n", remainder);
-  fflush(stdout); /* force it to go out */
-
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
   *slaveSideLen = 0;
   for(rank = 1; rank < nTasks; rank++)
@@ -589,15 +584,9 @@ void processMaster(FILE* input){
     for(rank = 1; rank < remainder+1; rank++)
       (*(slaveSideLen+rank))++;
 
-  for(rank = 0; rank < nTasks; rank++) {
-    printf("%d \n", slaveSideLen[rank]);
-  }
-
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
     buffer =  *(slaveSideLen+rank);
-    printf("buffer: %d\n", buffer);
-    fflush(stdout); /* force it to go out */
 
     /* Send it to each rank */
     MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
