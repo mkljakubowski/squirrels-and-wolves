@@ -34,7 +34,7 @@ Algorithm:
 - loads world from file
 - splits the world in N-1 parts
 - sends NEW_BOARD(K) to every node
-- sends correct part of board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on)
+- sends correct all the board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on)
 - sends FINISHED to confirm sending all cells
 - in 2*G step loop:
   - sends START_NEXT_GENERATION(color) to every node
@@ -59,7 +59,7 @@ Algorithm:
 - in loop:
   - listens for message
     - if it is FINISHED - all generations are finished - break the loop
-    - if START_NEXT_GENERATION(color) - start next generation of color 'color'
+    - if START_NEXT_GENERATION(genInfo) - start next generation with (startX, startY, endX, endY, color)
   - do the computation of its part of the board
   - send cells there were changed on a border to master with message UPDATE_CELL
   - when done sends FINISHED to master

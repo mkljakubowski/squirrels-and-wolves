@@ -417,15 +417,16 @@ void printWorld(){
 void processServant() {
   int side;
 
-  /* starts listening for NEW_BOARD message -> allocates memory for its board part */
-  MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  /// No need of all of this because we can load the input for each servants for the initialisation
+  ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
+  /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 
-  /* listens for UPDATE_CELL messages, saves messages to board */
+  ///* listens for UPDATE_CELL messages, saves messages to board */
 
-  /* listens for FINISHED meaning all cells are in place */
+  ///* listens for FINISHED meaning all cells are in place */
 
-  /* Servant loop */
+  ///* Servant loop */
   while(1) {
 
     /* if it is FINISHED - all generations are finished - break the loop */
@@ -440,21 +441,27 @@ void processServant() {
       break;
     }
 
-    /* if START_NEXT_GENERATION(color) - start next generation of color 'color' */
+    /* START_NEXT_GENERATION(genInfo) - start next generation */
 
-    int color;
-    MPI_Recv(&color, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+    int genInfo[5]; // genInfo : startX, startY, endX, endY, color
+    MPI_Recv(&genInfo, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	
+	startX = genInfo[0];
+	startY = genInfo[1];
+	endX = genInfo[2];
+	endY = genInfo[3];
+	color = genInfo[4];
+	
     /* Process steps :
        Do the computation of its part of the board; OK
-       Send cells that were changed on a border to master with message UPDATE_CELL;
-       When done sends FINISHED to master;
+       Send cells that were changed on a border to master with message UPDATE_CELL; OK
+       When done sends FINISHED to master; OK
        Listens for UPDATE_CELL messages from master;
-       If cells are in its part of the board updates them (potentially resolves conflicts);
-       listens for FINISHED messages from master.
+       If cells are in its part of the board updates them (potentially resolves conflicts); OK
+       listens for FINISHED messages from master. OK
     */
-    if(color == RED) {
-		 /* Red Process */
+    if(color == RED || color == BLACK) { // Useless condition. With this loop and the inc of +2 we stay on the right color.
+		
 		for(y = startY; y < endY; y += 2) {
 			for(x = startX ; x < endX; x += 2) {
 				cell = getCell(x, y);
@@ -490,10 +497,17 @@ void processServant() {
 		MPI_send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG); 
 		 
 		/* Listens for UPDATE_CELL messages from master; */
+		cell_t* rcvCellBuffer[buffSize]
 		// MPI_Recv(SOMETHING);
 		
 		// Now that we have the info for the others cells, we can update
-		update(cell);	
+		
+		for(y = startY; y < endY; y += 2) {
+			for(x = startX ; x < endX; x += 2) {
+				//cell = getCell(x, y);
+				update(rcvCellBuffer[x + 10*y]);
+			}
+		}
      
     }
 
@@ -639,6 +653,7 @@ int main(int argc, char **argv){
   /* } */
 
   /* else { // Servant process */
+  /*	    loadWorld(input); */
   /*   processServant(); // Actions of what a single servant must do */
   /* } */
 
