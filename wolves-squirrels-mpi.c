@@ -587,14 +587,14 @@ void processMaster(FILE* input){
     *(slaveSideLen+rank) = quotient;
   if(remainder > 0)
     for(rank = 1; rank < remainder; rank++)
-      (*(slaveSideLen+rank))++;
+      slaveSideLen[rank]++;
 
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
     buffer =  *(slaveSideLen+rank);
+    printf("buffer: %d\n", buffer);
     fflush(stdout); /* force it to go out */
 
-    printf("buffer: %d\n", buffer);
     /* Send it to each rank */
     MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
