@@ -58,7 +58,7 @@ run-MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv
 	mpirun -np $(NUMCPUS) MPI_Isend_MPI_Irecv 1024
 
 gdb-mpi: wolves-squirrels-mpi
-	gdb --args ./wolves-squirrels-mpi ex3.in 10 10 10 10
+	mpirun -np $(NUMCPUS) xterm -e gdb --args ./wolves-squirrels-mpi ex3.in 10 10 10 10
 
 gdb-mpi-tests: wolves-squirrels-mpi-tests
 	mpirun -np $(NUMCPUS) xterm -e gdb --args ./wolves-squirrels-mpi-tests ex3.in 10 10 10 10
