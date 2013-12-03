@@ -464,7 +464,7 @@ void processServant(int rank) {
       printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
       fflush(stdout); /* force it to go out */
 
-      memcpy(slaveWorld, world, slaveWorldSize * sizeof(cell_t));
+      memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
 
     }
     /* Listens for UPDATE_CELL messages, saves messages to board */
