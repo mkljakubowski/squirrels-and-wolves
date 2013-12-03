@@ -34,11 +34,12 @@
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
 
 typedef struct cell_t {
-  cell_habitant_t type;		//who lives in this cell
-  int starvation;		//starvation period if wolf
-  int breeding;		//breeding period of creature
-  struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
+  cell_habitant_t type;		/* who lives in this cell */
+  int starvation;		/* starvation period if wolf */
+  int breeding;		 	/* breeding period of creature */
+  struct cell_t* updates[4];	/* list of cells that wanted to update this one in previous subgen */
   int updateSize;
+  int x, y;			/* Coordinates - to help debug - will be removed*/
 } cell_t;
 
 //list of neighbours of some cell
@@ -112,6 +113,8 @@ void loadWorld(FILE* file){
     world[i].starvation = 0;
     world[i].breeding = 0;
     world[i].updateSize = 0;
+    world[i].x = i%worldSideLen;
+    world[i].y = i/worldSideLen;
   }
 
   /* init cells */
@@ -122,6 +125,7 @@ void loadWorld(FILE* file){
     cell->breeding = 0;
     cell->starvation = wolfStarvationPeriod;
   }
+
 }
 
 int isRed(int x, int y){
@@ -420,7 +424,7 @@ void printWorld(){
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant(int rank) {
   MPI_Status status;
-  int buffer, slaveWorldSize, x, y, startX, startY, endX, endY, color;
+  int slaveWorldSize, x, y, startX, startY, endX, endY, color, *buffer;
   cell_t* slaveWorld = NULL;
   cell_t* cell;
 
@@ -428,11 +432,13 @@ void processServant(int rank) {
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-  /* Servant loop */
-  while (1){
+   buffer = (int *)(malloc(sizeof(int) * 2));
+
+   /* Servant loop */
+   while (1){
 
     /* Receive a message from the master */
-    MPI_Recv(&buffer, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
     /* If it is FINISHED - all generations are finished - break the loop */
@@ -451,8 +457,9 @@ void processServant(int rank) {
     /* } */
     else if(status.MPI_TAG == NEW_BOARD_TAG){
       printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
-      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, buffer);
-      slaveWorldSize = worldSideLen * buffer;
+      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, *(buffer+1));
+      printf("Master told me to copy the 'world' array starting in index: %d.\n", *(buffer+0));
+      slaveWorldSize = worldSideLen * *(buffer+1);
       slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
       printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
       fflush(stdout); /* force it to go out */
@@ -554,7 +561,7 @@ void processServant(int rank) {
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
+  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, counter;
   /* MPI_Status status; */
 
   /* Find out how many processes there are in the default communicator */
@@ -580,21 +587,27 @@ void processMaster(){
     for(rank = 1; rank < remainder+1; rank++)
       (*(slaveSideLen+rank))++;
 
+  buffer = (int *)(malloc(sizeof(int) * 2));
+
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
+  counter = 0;
   for(rank = 1; rank < nTasks; ++rank){
-    buffer =  *(slaveSideLen+rank);
+    /* Inital index   */
+    *buffer = counter;
+    *(buffer+1) =  *(slaveSideLen+rank);
 
     /* Send it to each rank */
-    MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+    MPI_Send(buffer, 2, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+    counter = counter + (*(slaveSideLen+rank) * worldSideLen);
   }
 
 
 
   /* Everything is done. Tell all the slaves to break their loops and exit sending an message with the FINISHED_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
-    buffer =  0;
+
     /* Send it to each rank */
-    MPI_Send(&buffer, 1, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
+    MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
   }
   return;
 }
@@ -643,8 +656,9 @@ int main(int argc, char **argv){
   /* Shut down MPI */
   MPI_Finalize();
 
+  /* There is no point in freeing blocks at the end of a program, because all of the program's space is given back to the system when the process terminates. */
   /* Release resources */
-  free(world);
+  /* free(world); */
 
   /* Close file descriptor */
   fclose(input);
