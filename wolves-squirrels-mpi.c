@@ -432,10 +432,10 @@ void processServant(int rank) {
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-   buffer = (int *)(malloc(sizeof(int) * 2));
+  buffer = (int *)(malloc(sizeof(int) * 2));
 
-   /* Servant loop */
-   while (1){
+  /* Servant loop */
+  while (1){
 
     /* Receive a message from the master */
     MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -465,6 +465,8 @@ void processServant(int rank) {
       fflush(stdout); /* force it to go out */
 
       memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
+      /* To the slave the 'world' array is of no use anymore; reclaim memory */
+      /* free(world); */
 
     }
     /* Listens for UPDATE_CELL messages, saves messages to board */
@@ -577,12 +579,28 @@ void processMaster(){
 
   /* Splits the world by the number of slaves */
   /* Consider doing this more correctly using function MPI_DIMS_CREATE */
+  /* Handles ghost lines */
+  /* Ghost lines - Memory locations used to store redundant copies of data held by neighboring processes*/
+  /* Allocating ghost points as extra columns simplifies parallel algorithm by allowing same loop to update all cells */
+  /* See slides 6 to 10 in 'jacobi-iteration.pdf' */
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
   *slaveSideLen = 0;
-  for(rank = 1; rank < nTasks; rank++)
+  for(rank = 1; rank < nTasks; rank++){
     *(slaveSideLen+rank) = quotient;
+    /* Ghost lines */
+    if(((rank == 1) && (nTasks > 2)) || ((rank == (nTasks-1)) && (nTasks > 2))){
+      /* If it is the first slave of the last just add one redundant line */
+      (*(slaveSideLen+rank))++;
+    } else if (nTasks > 2) {
+      /* Add two redundant line - one from the previous task and one from the next task */
+      (*(slaveSideLen+rank))++;
+      (*(slaveSideLen+rank))++;
+    }
+    printf("Valor de *(slaveSideLen+rank): %d para o rank: %d.\n", *(slaveSideLen+rank), rank);
+    fflush(stdout); /* force it to go out */
+  }
   if(remainder > 0)
     for(rank = 1; rank < remainder+1; rank++)
       (*(slaveSideLen+rank))++;
@@ -592,8 +610,10 @@ void processMaster(){
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
   counter = 0;
   for(rank = 1; rank < nTasks; ++rank){
-    /* Inital index   */
+    /* buffer[0] - Inital index from which the slave will start copying its 'slaveWorld' from the 'world' loaded from file. */
     *buffer = counter;
+    /* buffer[1] - Number of cells in the 'slaveWorld' array */
+    /* Ghost lines */
     *(buffer+1) =  *(slaveSideLen+rank);
 
     /* Send it to each rank */
@@ -609,6 +629,9 @@ void processMaster(){
     /* Send it to each rank */
     MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
   }
+
+  /* Release resources */
+  free(buffer);
   return;
 }
 
@@ -658,7 +681,7 @@ int main(int argc, char **argv){
 
   /* There is no point in freeing blocks at the end of a program, because all of the program's space is given back to the system when the process terminates. */
   /* Release resources */
-  /* free(world); */
+  free(world);
 
   /* Close file descriptor */
   fclose(input);
