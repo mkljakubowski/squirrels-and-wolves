@@ -370,9 +370,9 @@ void printWorld(){
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant(int rank) {
   MPI_Status status;
-  int slaveWorldSize, x, y, startX, startY, endX, endY, color, *buffer;
+  int x, y, startX, startY, endX, endY, *buffer;
   cell_t* cell;
-  color_t color = -1;
+  color_t color;
   
   buffer = (int *)(malloc(sizeof(int) * 128));
   MPI_Recv(buffer, 2, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
@@ -448,13 +448,13 @@ void processServant(int rank) {
   }  
   
   MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
-  
   free(buffer);
 }
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, nSlaves, subGenNo, finishedServants;
+  MPI_Status status;
+  int nTasks, rank, quotient, remainder, *buffer, nSlaves, subGenNo, finishedServants;
   color_t color;
   
   /* Find out how many processes there are in the default communicator */
@@ -464,12 +464,11 @@ void processMaster(){
   /* Splits the world by the number of slaves */
   quotient = worldSideLen/nSlaves;
   remainder = worldSideLen%nSlaves;
-  int buffer = (int *)(malloc(sizeof(int) * 128));
+  buffer = (int *)(malloc(sizeof(int) * 128));
 
   /* Tell all the slaves position of theit board piece */
   for(rank = 1; rank < nTasks; rank++){
     buffer[0] = (rank-1)*quotient;
-    /* buffer[1] - Number of cells in the 'slaveWorld' array */
     buffer[1] = rank * quotient;
     buffer[2] = 0;
     buffer[3] = worldSideLen;
@@ -481,12 +480,12 @@ void processMaster(){
     MPI_Send(buffer, 4, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
 
-  for(subGenNo = 0 ; subGenNo++ ; subGenNo < 2* noOfGenerations){
-    color = (subGenNo % 2 == 1)?RED:RED;
+  for(subGenNo = 0 ; subGenNo < 2* noOfGenerations ; subGenNo++){
+    color = (subGenNo % 2 == 1)?RED:BLACK;
     finishedServants = 0;
     
     for(rank = 1; rank < nTasks; rank++){
-      //send start new sub gen with color
+      MPI_Send(&color, 1, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
     }    
     
     while(1){
