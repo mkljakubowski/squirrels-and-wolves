@@ -420,11 +420,15 @@ void processServant(int rank) {
 	for(x = startX ; x < endX ; x++){
 	    update(cell);
 	    //if it is on edge send it
+	    if(x == 0 || x = endX-1 || y == 0 || y = endY-1) {
+			//send master
+		}
+	    
 	}
       }
       
       /* send finished tag to master */
-      
+      MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
       /* Listens for UPDATE_CELL messages, saves messages to board */
 
       /* Listens for FINISHED meaning all cells are in place */
