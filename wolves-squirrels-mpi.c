@@ -431,7 +431,8 @@ void processServant(int rank) {
       MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
       /* Listens for UPDATE_CELL messages, saves messages to board */
 
-      /* Listens for FINISHED meaning all cells are in place */
+      /* Listens for FINISHED meaning all cells are in place (blocking) */ 
+      MPI_Recv(buffer, 2, MPI_INT, 0, FINISHED_TAG, MPI_COMM_WORLD, &status);
     }
 
   }
