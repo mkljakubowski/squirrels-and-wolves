@@ -387,7 +387,21 @@ void processServant(int rank) {
     if(status.MPI_TAG == FINISHED_TAG){
       printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
       return;
-    } else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
+      
+      
+    else if(status.MPI_TAG == NEW_BOARD_TAG){
+
+		 printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
+		 printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, *(buffer+1));
+		 printf("Master told me to copy the 'world' array starting in index: %d.\n", *(buffer+0));
+		 slaveWorldSize = worldSideLen * *(buffer+1);
+		 slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
+		 printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
+		 fflush(stdout); /* force it to go out */
+		 memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
+	}
+	 
+    else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
       printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
       /* do the calcualtion for current subgeneration (modified worldLoop) */
       
