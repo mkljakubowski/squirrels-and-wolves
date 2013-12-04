@@ -12,7 +12,6 @@
 #define UPDATE_CELL_TAG 101
 #define FINISHED_TAG 102
 #define START_NEXT_GENERATION_TAG 103
-/* #define WORLD_SIDE_LEN_TAG 104 */
 
 /*
   CELL NUMBERING
@@ -350,49 +349,6 @@ void pressEntertoContinue(){
   }
 }
 
-/* LOGIC LOOP */
-void worldLoop(int noOfGenerations){
-  int x, y, i;
-  cell_t* cell;
-
-  for(i = 0 ; i < 4 * noOfGenerations ; i++){
-    //     if(i % 4 == 1)
-    //       fprintf(stdout, "Iteration %d Red\n", (i/4) + 1);
-    // //     if(i % 4 == 3)
-    //       fprintf(stdout, "Iteration %d Black\n", (i/4) + 1);
-    for(y = 0 ; y < worldSideLen ; y++){
-      for(x = 0 ; x < worldSideLen ; x++){
-	cell = getCell(x, y);
-	if(i % 4 == 0){
-	  cell->starvation--;
-	  cell->breeding++;
-	}
-	if (((i % 4 == 0) && isRed(x, y)) || ((i % 4 == 2) && !isRed(x, y))) {
-	  switch(cell->type){
-	  case EMPTY: break;
-	  case ICE: break;
-	  case TREE: break;
-	  case SQUIRREL:
-	    doSquirrelStuff(x, y, cell);
-	    break;
-	  case TREE_WITH_SQUIRREL:
-	    doSquirrelStuff(x, y, cell);
-	    break;
-	  case WOLF:
-	    doWolfStuff(x, y, cell);
-	    break;
-	  }
-	} else if(i%4==3 || i%4==1){
-	  update(cell);
-	}
-      }
-    }
-    //if (i%4==1 || i%4==3)
-    //printWorld2d(stdout);
-    /* pressEntertoContinue(); */
-  }
-}
-
 /* PRINT WORLD IN STDOUT */
 void printWorld(){
   int x, y;
@@ -411,168 +367,51 @@ void printWorld(){
   }
 }
 
-
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant(int rank) {
   MPI_Status status;
   int slaveWorldSize, x, y, startX, startY, endX, endY, color, *buffer;
   cell_t* slaveWorld = NULL;
   cell_t* cell;
-
-  /// No need of all of this because we can load the input for each servants for the initialisation
-  ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
-  /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
+  
   buffer = (int *)(malloc(sizeof(int) * 2));
 
+  /* receive which part of the board is allocated to this servant */
+  
   /* Servant loop */
   while (1){
 
     /* Receive a message from the master */
     MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-    /* Check the tag of the received message. */
-    /* If it is FINISHED - all generations are finished - break the loop */
     if(status.MPI_TAG == FINISHED_TAG){
       printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
-      printf("Master told me to break the loop.\n\n");
-      /* free resources */
-      free(slaveWorld);
       return;
+    } else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
+      printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
+      /* do the calcualtion for current subgeneration (modified worldLoop) */
+      
+      /* while doing update send needed cells to master */
+      
+      /* send finished tag to master */
+      
+      /* Listens for UPDATE_CELL messages, saves messages to board */
+
+      /* Listens for FINISHED meaning all cells are in place */
     }
-    /* else if(status.MPI_TAG == WORLD_SIDE_LEN_TAG) { */
-    /*   printf("Slave is processing tag 'WORLD_SIDE_LEN_TAG'.\n"); */
-    /*   printf("Master told me that the 'worldSideLen' is %d.\n\n", buffer); */
-    /*   fflush(stdout); /\* force it to go out *\/ */
-    /*   worldSideLen = buffer; */
-    /* } */
-    else if(status.MPI_TAG == NEW_BOARD_TAG){
-      printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
-      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, *(buffer+1));
-      printf("Master told me to copy the 'world' array starting in index: %d.\n", *(buffer+0));
-      slaveWorldSize = worldSideLen * *(buffer+1);
-      slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
-      printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
-      fflush(stdout); /* force it to go out */
-
-      memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
-      /* To the slave the 'world' array is of no use anymore; reclaim memory */
-      /* free(world); */
-
-    }
-    /* Listens for UPDATE_CELL messages, saves messages to board */
-
-    /* Listens for FINISHED meaning all cells are in place */
 
   }
 
-
-  while(0){
-
-    /* START_NEXT_GENERATION(genInfo) - start next generation */
-
-    int genInfo[5]; // genInfo : startX, startY, endX, endY, color
-    MPI_Recv(&genInfo, 1, MPI_INT, MASTER, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    startX = genInfo[0];
-    startY = genInfo[1];
-    endX = genInfo[2];
-    endY = genInfo[3];
-    color = genInfo[4];
-
-    /* Process steps :
-       Do the computation of its part of the board; OK
-       Send cells that were changed on a border to master with message UPDATE_CELL; OK
-       When done sends FINISHED to master; OK
-       Listens for UPDATE_CELL messages from master;
-       If cells are in its part of the board updates them (potentially resolves conflicts); OK
-       listens for FINISHED messages from master. OK
-    */
-    if(color == RED || color == BLACK) { // Useless condition. With this loop and the inc of +2 we stay on the right color.
-
-      for(y = startY; y < endY; y += 2) {
-	for(x = startX ; x < endX; x += 2) {
-	  cell = getCell(x, y);
-	  cell->starvation--;
-	  cell->breeding++;
-
-	  switch(cell->type){
-	  case EMPTY: break;
-	  case ICE: break;
-	  case TREE: break;
-	  case SQUIRREL:
-	    doSquirrelStuff(x, y, cell);
-	    break;
-	  case TREE_WITH_SQUIRREL:
-	    doSquirrelStuff(x, y, cell);
-	    break;
-	  case WOLF:
-	    doWolfStuff(x, y, cell);
-	    break;
-	  }
-	}
-      }
-      /* Send the cells to the master */
-      int buffSize = (endY-startY)*(endX-startX);
-      cell_t* cellBuff[buffSize];
-      for(y = startY; y < endY; y += 2) {
-	for(x = startX ; x < endX; x += 2) {
-	  cellBuff[x + 10*y] = getCell(x, y);
-	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
-	}
-      }
-
-      /* Send Finished to Master */
-      int itFinished = 1;
-      MPI_Send(&itFinished, 1, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
-
-      /* Listens for UPDATE_CELL messages from master; */
-      cell_t* rcvCellBuffer[buffSize];
-      // MPI_Recv(SOMETHING);
-      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
-      // Now that we have the info for the others cells, we can update
-
-      for(y = startY; y < endY; y += 2) {
-	for(x = startX ; x < endX; x += 2) {
-	  //cell = getCell(x, y);
-	  update(rcvCellBuffer[x + 10*y]);
-	}
-      }
-
-    }
-
-    else if(color == BLACK) {
-      /* Black Process (Same than Red ?)*/
-    }
-
-    /* sends all cells from board to master with UPDATE_CELL */
-
-  }
-  return;
 }
-
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
   int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, index;
-  /* MPI_Status status; */
 
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
 
-  /* Tell all the slaves the size of the worldSideLen sending an message with the WORLD_SIDE_LEN_TAG. */
-  /* for(rank = 1; rank < nTasks; ++rank){ */
-
-  /*   /\* Send it to each rank *\/ */
-  /*   MPI_Send(&worldSideLen, 1, MPI_INT, rank, WORLD_SIDE_LEN_TAG, MPI_COMM_WORLD); */
-  /* } */
-
-
   /* Splits the world by the number of slaves */
-  /* Consider doing this more correctly using function MPI_DIMS_CREATE */
-  /* Handles ghost lines */
-  /* Ghost lines - Memory locations used to store redundant copies of data held by neighboring processes*/
-  /* Allocating ghost points as extra columns simplifies parallel algorithm by allowing same loop to update all cells */
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
@@ -613,8 +452,6 @@ void processMaster(){
     if((rank+1) < nTasks)
       index = index + (*(slaveSideLen+rank) * worldSideLen) - (2 * worldSideLen);
   }
-
-
 
   /* Everything is done. Tell all the slaves to break their loops and exit sending an message with the FINISHED_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
