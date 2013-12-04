@@ -371,41 +371,57 @@ void printWorld(){
 void processServant(int rank) {
   MPI_Status status;
   int slaveWorldSize, x, y, startX, startY, endX, endY, color, *buffer;
-  cell_t* slaveWorld = NULL;
   cell_t* cell;
+  color_t color = -1;
   
   buffer = (int *)(malloc(sizeof(int) * 2));
 
-  /* receive which part of the board is allocated to this servant */
+  /* listen which part of the board is allocated to this servant */
   
   /* Servant loop */
   while (1){
-
-    /* Receive a message from the master */
     MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     if(status.MPI_TAG == FINISHED_TAG){
       printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
-      return;
-      
-      
-    else if(status.MPI_TAG == NEW_BOARD_TAG){
-
-		 printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
-		 printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, *(buffer+1));
-		 printf("Master told me to copy the 'world' array starting in index: %d.\n", *(buffer+0));
-		 slaveWorldSize = worldSideLen * *(buffer+1);
-		 slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
-		 printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
-		 fflush(stdout); /* force it to go out */
-		 memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
-	}
-	 
-    else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
+      break;
+    }else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
       printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
-      /* do the calcualtion for current subgeneration (modified worldLoop) */
+
+      //get the color from the message
       
-      /* while doing update send needed cells to master */
+      for(y = startY ; y < endY ; y++){
+	for(x = startX ; x < endX ; x++){
+	  cell = getCell(x, y);
+	  if(color == RED){
+	    cell->starvation--;
+	    cell->breeding++;	  
+	  }	
+	  if ((color == RED && isRed(x, y)) || (color == BLACK && !isRed(x, y))) {
+	    switch(cell->type){
+	      case EMPTY: break;
+	      case ICE: break;
+	      case TREE: break;
+	      case SQUIRREL:
+		doSquirrelStuff(x, y, cell);
+		break;
+	      case TREE_WITH_SQUIRREL:
+		doSquirrelStuff(x, y, cell);
+		break;
+	      case WOLF:
+		doWolfStuff(x, y, cell);
+		break;
+	    }
+	  }
+	}
+      }
+
+      for(y = startY ; y < endY ; y++){
+	for(x = startX ; x < endX ; x++){
+	    update(cell);
+	    //if it is on edge send it
+	}
+      }
       
       /* send finished tag to master */
       
@@ -415,19 +431,28 @@ void processServant(int rank) {
     }
 
   }
-
+  
+  for(y = startY ; y < endY ; y++){
+    for(x = startX ; x < endX ; x++){
+	//send cell to master
+    }
+  }  
+  
+  //send finished to master
+  
 }
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, index;
+  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, index, nSlaves;
 
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
-
+  nSlaves = nTasks - 1;
+  
   /* Splits the world by the number of slaves */
-  quotient = worldSideLen/(nTasks-1);
-  remainder = worldSideLen%(nTasks-1);
+  quotient = worldSideLen/nSlaves;
+  remainder = worldSideLen%nSlaves;
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
   *slaveSideLen = 0;
   for(rank = 1; rank < nTasks; rank++)
@@ -447,7 +472,7 @@ void processMaster(){
     *(buffer+1) =  *(slaveSideLen+rank);
 
     /* Ghost lines */
-    if(((rank == 1) && (nTasks > 2)) || ((rank == (nTasks-1)) && (nTasks > 2))){
+    if(((rank == 1) && (nTasks > 2)) || ((rank == nSlaves) && (nTasks > 2))){
       /* If it is the first slave of the last just add one redundant line */
       (*(buffer+1))++;
     } else if (nTasks > 2){
