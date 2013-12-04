@@ -573,7 +573,6 @@ void processMaster(){
   /* Handles ghost lines */
   /* Ghost lines - Memory locations used to store redundant copies of data held by neighboring processes*/
   /* Allocating ghost points as extra columns simplifies parallel algorithm by allowing same loop to update all cells */
-  /* See slides 6 to 10 in 'jacobi-iteration.pdf' */
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
@@ -673,7 +672,6 @@ int main(int argc, char **argv){
   /* Shut down MPI */
   MPI_Finalize();
 
-  /* There is no point in freeing blocks at the end of a program, because all of the program's space is given back to the system when the process terminates. */
   /* Release resources */
   free(world);
 
