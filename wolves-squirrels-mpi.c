@@ -374,21 +374,23 @@ void processServant(int rank) {
   cell_t* cell;
   color_t color = -1;
   
-  buffer = (int *)(malloc(sizeof(int) * 2));
-
-  /* listen which part of the board is allocated to this servant */
+  buffer = (int *)(malloc(sizeof(int) * 128));
+  MPI_Recv(buffer, 2, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
+  startX = buffer[0];
+  endX = buffer[1];
+  startY = buffer[2];
+  endY = buffer[3];
   
   /* Servant loop */
   while (1){
-    MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     if(status.MPI_TAG == FINISHED_TAG){
       printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
       break;
     }else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
       printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
-
-      //get the color from the message
+      color = buffer[0];
       
       for(y = startY ; y < endY ; y++){
 	for(x = startX ; x < endX ; x++){
@@ -419,15 +421,22 @@ void processServant(int rank) {
       for(y = startY ; y < endY ; y++){
 	for(x = startX ; x < endX ; x++){
 	    update(cell);
-	    //if it is on edge send it
+	    //if it is on edge send it as UPDATE_CELL
 	}
       }
       
-      /* send finished tag to master */
+      MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
       
-      /* Listens for UPDATE_CELL messages, saves messages to board */
+      while (1){
+	MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+	if(status.MPI_TAG == FINISHED_TAG){
+	  printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
+	  break;
+	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
+	  //update received cell
+	}
+      }
 
-      /* Listens for FINISHED meaning all cells are in place */
     }
 
   }
@@ -438,8 +447,9 @@ void processServant(int rank) {
     }
   }  
   
-  //send finished to master
+  MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
   
+  free(buffer);
 }
 
 /* ACTIONS OF THE MASTER */
@@ -461,12 +471,14 @@ void processMaster(){
     buffer[0] = (rank-1)*quotient;
     /* buffer[1] - Number of cells in the 'slaveWorld' array */
     buffer[1] = rank * quotient;
+    buffer[2] = 0;
+    buffer[3] = worldSideLen;
     
     if(rank == nTasks -1){
       buffer[1] += remainder;
     }
 
-    MPI_Send(buffer, 2, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+    MPI_Send(buffer, 4, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
 
   for(subGenNo = 0 ; subGenNo++ ; subGenNo < 2* noOfGenerations){
