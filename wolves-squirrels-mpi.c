@@ -14,17 +14,6 @@
 #define START_NEXT_GENERATION_TAG 103
 /* #define WORLD_SIDE_LEN_TAG 104 */
 
-/* Type of nodes */
-#define MASTER_ID 0
-
-/* #define SERVANT_ID 1 */
-
-/* ATTENTION!! SERVANT_ID and RED cannot have the same value = 1  */
-
-/* Colors */
-#define RED 1
-#define BLACK 2
-
 /*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
@@ -32,6 +21,8 @@
 
 /* TYPES */
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
+typedef enum node_category_t { MASTER, SERVANT } node_category_t;
+typedef enum color_t { RED, BLACK } color_t;
 
 typedef struct cell_t {
   cell_habitant_t type;		/* who lives in this cell */
@@ -481,7 +472,7 @@ void processServant(int rank) {
     /* START_NEXT_GENERATION(genInfo) - start next generation */
 
     int genInfo[5]; // genInfo : startX, startY, endX, endY, color
-    MPI_Recv(&genInfo, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&genInfo, 1, MPI_INT, MASTER, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     startX = genInfo[0];
     startY = genInfo[1];
@@ -527,18 +518,18 @@ void processServant(int rank) {
       for(y = startY; y < endY; y += 2) {
 	for(x = startX ; x < endX; x += 2) {
 	  cellBuff[x + 10*y] = getCell(x, y);
-	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	}
       }
 
       /* Send Finished to Master */
       int itFinished = 1;
-      MPI_Send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD);
+      MPI_Send(&itFinished, 1, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 
       /* Listens for UPDATE_CELL messages from master; */
       cell_t* rcvCellBuffer[buffSize];
       // MPI_Recv(SOMETHING);
-      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
+      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
       // Now that we have the info for the others cells, we can update
 
       for(y = startY; y < endY; y += 2) {
@@ -673,7 +664,7 @@ int main(int argc, char **argv){
 
   /* Find out my identity in the default communicator */
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank == MASTER_ID){
+  if(rank == MASTER){
     processMaster();
   }else{
     processServant(rank);
