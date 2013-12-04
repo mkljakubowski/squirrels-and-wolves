@@ -14,17 +14,6 @@
 #define START_NEXT_GENERATION_TAG 103
 /* #define WORLD_SIDE_LEN_TAG 104 */
 
-/* Type of nodes */
-#define MASTER_ID 0
-
-/* #define SERVANT_ID 1 */
-
-/* ATTENTION!! SERVANT_ID and RED cannot have the same value = 1  */
-
-/* Colors */
-#define RED 1
-#define BLACK 2
-
 /*
   CELL NUMBERING
   Cells are numbered as pixel on screen. Top left cell is (0,0):(x,y), x grows to the right, y grows down.
@@ -32,13 +21,16 @@
 
 /* TYPES */
 typedef enum cell_habitant_t { EMPTY, SQUIRREL, WOLF, ICE, TREE, TREE_WITH_SQUIRREL } cell_habitant_t;
+typedef enum node_category_t { MASTER, SERVANT } node_category_t;
+typedef enum color_t { RED, BLACK } color_t;
 
 typedef struct cell_t {
-  cell_habitant_t type;		//who lives in this cell
-  int starvation;		//starvation period if wolf
-  int breeding;		//breeding period of creature
-  struct cell_t* updates[4];	//list of cells that wanted to update this one in previous subgen
+  cell_habitant_t type;		/* who lives in this cell */
+  int starvation;		/* starvation period if wolf */
+  int breeding;		 	/* breeding period of creature */
+  struct cell_t* updates[4];	/* list of cells that wanted to update this one in previous subgen */
   int updateSize;
+  int x, y;			/* Coordinates - to help debug - will be removed*/
 } cell_t;
 
 //list of neighbours of some cell
@@ -112,6 +104,8 @@ void loadWorld(FILE* file){
     world[i].starvation = 0;
     world[i].breeding = 0;
     world[i].updateSize = 0;
+    world[i].x = i%worldSideLen;
+    world[i].y = i/worldSideLen;
   }
 
   /* init cells */
@@ -122,6 +116,7 @@ void loadWorld(FILE* file){
     cell->breeding = 0;
     cell->starvation = wolfStarvationPeriod;
   }
+
 }
 
 int isRed(int x, int y){
@@ -420,7 +415,7 @@ void printWorld(){
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant(int rank) {
   MPI_Status status;
-  int buffer, slaveWorldSize, x, y, startX, startY, endX, endY, color;
+  int slaveWorldSize, x, y, startX, startY, endX, endY, color, *buffer;
   cell_t* slaveWorld = NULL;
   cell_t* cell;
 
@@ -428,11 +423,13 @@ void processServant(int rank) {
   ///* starts listening for NEW_BOARD message -> allocates memory for its board part */
   /// /MPI_Recv(&side, 1, MPI_INT, MASTER_ID, NEW_BOARD_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+  buffer = (int *)(malloc(sizeof(int) * 2));
+
   /* Servant loop */
   while (1){
 
     /* Receive a message from the master */
-    MPI_Recv(&buffer, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     /* Check the tag of the received message. */
     /* If it is FINISHED - all generations are finished - break the loop */
@@ -451,13 +448,16 @@ void processServant(int rank) {
     /* } */
     else if(status.MPI_TAG == NEW_BOARD_TAG){
       printf("\nSlave with rank %d is processing tag 'NEW_BOARD_TAG'.\n", rank);
-      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, buffer);
-      slaveWorldSize = worldSideLen * buffer;
+      printf("Master told me to allocate memory for a matrix with %d by %d.\n", worldSideLen, *(buffer+1));
+      printf("Master told me to copy the 'world' array starting in index: %d.\n", *(buffer+0));
+      slaveWorldSize = worldSideLen * *(buffer+1);
       slaveWorld = (cell_t*)(malloc(slaveWorldSize * sizeof(cell_t)));
       printf("The allocated matrix will have %d cells.\n\n", slaveWorldSize);
       fflush(stdout); /* force it to go out */
 
-      memcpy(slaveWorld, world, slaveWorldSize * sizeof(cell_t));
+      memcpy(slaveWorld, world+*(buffer+0), slaveWorldSize * sizeof(cell_t));
+      /* To the slave the 'world' array is of no use anymore; reclaim memory */
+      /* free(world); */
 
     }
     /* Listens for UPDATE_CELL messages, saves messages to board */
@@ -472,7 +472,7 @@ void processServant(int rank) {
     /* START_NEXT_GENERATION(genInfo) - start next generation */
 
     int genInfo[5]; // genInfo : startX, startY, endX, endY, color
-    MPI_Recv(&genInfo, 1, MPI_INT, MASTER_ID, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&genInfo, 1, MPI_INT, MASTER, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     startX = genInfo[0];
     startY = genInfo[1];
@@ -518,18 +518,18 @@ void processServant(int rank) {
       for(y = startY; y < endY; y += 2) {
 	for(x = startX ; x < endX; x += 2) {
 	  cellBuff[x + 10*y] = getCell(x, y);
-	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	  MPI_Send(&cellBuff, buffSize , MPI_INT /* STRUCTURE CELL */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	}
       }
 
       /* Send Finished to Master */
       int itFinished = 1;
-      MPI_Send(&itFinished, 1, MPI_INT, MASTER_ID, FINISHED_TAG, MPI_COMM_WORLD);
+      MPI_Send(&itFinished, 1, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 
       /* Listens for UPDATE_CELL messages from master; */
       cell_t* rcvCellBuffer[buffSize];
       // MPI_Recv(SOMETHING);
-      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER_ID, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
+      MPI_Recv(&rcvCellBuffer, buffSize, MPI_INT /* MPI_STRUCT */, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // TO DO : Define the structure
       // Now that we have the info for the others cells, we can update
 
       for(y = startY; y < endY; y += 2) {
@@ -554,7 +554,7 @@ void processServant(int rank) {
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  int nTasks, rank, quotient, remainder, buffer, *slaveSideLen;
+  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, index;
   /* MPI_Status status; */
 
   /* Find out how many processes there are in the default communicator */
@@ -570,6 +570,9 @@ void processMaster(){
 
   /* Splits the world by the number of slaves */
   /* Consider doing this more correctly using function MPI_DIMS_CREATE */
+  /* Handles ghost lines */
+  /* Ghost lines - Memory locations used to store redundant copies of data held by neighboring processes*/
+  /* Allocating ghost points as extra columns simplifies parallel algorithm by allowing same loop to update all cells */
   quotient = worldSideLen/(nTasks-1);
   remainder = worldSideLen%(nTasks-1);
   slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
@@ -580,22 +583,48 @@ void processMaster(){
     for(rank = 1; rank < remainder+1; rank++)
       (*(slaveSideLen+rank))++;
 
+  buffer = (int *)(malloc(sizeof(int) * 2));
+
   /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
+  index = 0;
   for(rank = 1; rank < nTasks; ++rank){
-    buffer =  *(slaveSideLen+rank);
+    /* buffer[0] - Inital index from which the slave will start copying its 'slaveWorld' from the 'world' loaded from file. */
+    *buffer = index;
+    /* buffer[1] - Number of cells in the 'slaveWorld' array */
+    *(buffer+1) =  *(slaveSideLen+rank);
+
+    /* Ghost lines */
+    if(((rank == 1) && (nTasks > 2)) || ((rank == (nTasks-1)) && (nTasks > 2))){
+      /* If it is the first slave of the last just add one redundant line */
+      (*(buffer+1))++;
+    } else if (nTasks > 2){
+      /* Add two redundant lines - one from the previous task and one from the next task */
+      (*(buffer+1))++;
+      (*(buffer+1))++;
+    }
+
+    printf("Inital index from which the slave will start copying: %d for rank: %d.\n", *buffer, rank);
+    printf("Number of cells in the 'slaveWorld' array %d for rank: %d.\n", *(buffer+1), rank);
+    fflush(stdout); /* force it to go out */
 
     /* Send it to each rank */
-    MPI_Send(&buffer, 1, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+    MPI_Send(buffer, 2, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
+
+    if((rank+1) < nTasks)
+      index = index + (*(slaveSideLen+rank) * worldSideLen) - (2 * worldSideLen);
   }
 
 
 
   /* Everything is done. Tell all the slaves to break their loops and exit sending an message with the FINISHED_TAG. */
   for(rank = 1; rank < nTasks; ++rank){
-    buffer =  0;
+
     /* Send it to each rank */
-    MPI_Send(&buffer, 1, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
+    MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
   }
+
+  /* Release resources */
+  free(buffer);
   return;
 }
 
@@ -634,7 +663,7 @@ int main(int argc, char **argv){
 
   /* Find out my identity in the default communicator */
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  if(rank == MASTER_ID){
+  if(rank == MASTER){
     processMaster();
   }else{
     processServant(rank);
