@@ -444,8 +444,9 @@ void processServant(int rank) {
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, index, nSlaves;
-
+  int nTasks, rank, quotient, remainder, *buffer, *slaveSideLen, nSlaves, subGenNo, finishedServants;
+  color_t color;
+  
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
   nSlaves = nTasks - 1;
@@ -453,55 +454,53 @@ void processMaster(){
   /* Splits the world by the number of slaves */
   quotient = worldSideLen/nSlaves;
   remainder = worldSideLen%nSlaves;
-  slaveSideLen = (int *)(malloc(nTasks * sizeof(int)));
-  *slaveSideLen = 0;
-  for(rank = 1; rank < nTasks; rank++)
-    *(slaveSideLen+rank) = quotient;
-  if(remainder > 0)
-    for(rank = 1; rank < remainder+1; rank++)
-      (*(slaveSideLen+rank))++;
+  int buffer = (int *)(malloc(sizeof(int) * 128));
 
-  buffer = (int *)(malloc(sizeof(int) * 2));
-
-  /* Tell all the slaves to create new board sending an message with the NEW_BOARD_TAG. */
-  index = 0;
-  for(rank = 1; rank < nTasks; ++rank){
-    /* buffer[0] - Inital index from which the slave will start copying its 'slaveWorld' from the 'world' loaded from file. */
-    *buffer = index;
+  /* Tell all the slaves position of theit board piece */
+  for(rank = 1; rank < nTasks; rank++){
+    buffer[0] = (rank-1)*quotient;
     /* buffer[1] - Number of cells in the 'slaveWorld' array */
-    *(buffer+1) =  *(slaveSideLen+rank);
-
-    /* Ghost lines */
-    if(((rank == 1) && (nTasks > 2)) || ((rank == nSlaves) && (nTasks > 2))){
-      /* If it is the first slave of the last just add one redundant line */
-      (*(buffer+1))++;
-    } else if (nTasks > 2){
-      /* Add two redundant lines - one from the previous task and one from the next task */
-      (*(buffer+1))++;
-      (*(buffer+1))++;
+    buffer[1] = rank * quotient;
+    
+    if(rank == nTasks -1){
+      buffer[1] += remainder;
     }
 
-    printf("Inital index from which the slave will start copying: %d for rank: %d.\n", *buffer, rank);
-    printf("Number of cells in the 'slaveWorld' array %d for rank: %d.\n", *(buffer+1), rank);
-    fflush(stdout); /* force it to go out */
-
-    /* Send it to each rank */
     MPI_Send(buffer, 2, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
-
-    if((rank+1) < nTasks)
-      index = index + (*(slaveSideLen+rank) * worldSideLen) - (2 * worldSideLen);
   }
 
-  /* Everything is done. Tell all the slaves to break their loops and exit sending an message with the FINISHED_TAG. */
-  for(rank = 1; rank < nTasks; ++rank){
+  for(subGenNo = 0 ; subGenNo++ ; subGenNo < 2* noOfGenerations){
+    color = (subGenNo % 2 == 1)?RED:RED;
+    finishedServants = 0;
+    
+    for(rank = 1; rank < nTasks; rank++){
+      //send start new sub gen with color
+    }    
+    
+    while(1){
+      MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      if(status.MPI_TAG == UPDATE_CELL_TAG){
+	//send to all other servants
+      }else if(status.MPI_TAG == FINISHED_TAG){
+	finishedServants++;
+      }
+      
+      if(finishedServants == nSlaves){
+	break; //all servants have finished
+      }
+    }
 
-    /* Send it to each rank */
-    MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD);
+    for(rank = 1; rank < nTasks; rank++){
+      MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
+    }
+    
+  }  
+  
+  for(rank = 1; rank < nTasks; rank++){
+    MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished all generations
   }
 
-  /* Release resources */
   free(buffer);
-  return;
 }
 
 /* MAIN */
@@ -545,15 +544,7 @@ int main(int argc, char **argv){
     processServant(rank);
   }
 
-  /* Shut down MPI */
   MPI_Finalize();
-
-  /* Release resources */
-  free(world);
-
-  /* Close file descriptor */
   fclose(input);
-
-  /* Exit with sucess */
   return EXIT_SUCCESS;
 }
