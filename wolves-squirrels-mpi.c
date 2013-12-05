@@ -429,14 +429,12 @@ void processServant(int rank) {
 	  update(cell);
 
 	  //send cells that are on the edge of my board
-	  if(cell->type != EMPTY){
-	    if(x == startX || x == startX-1 || x == endX || x == endX+1){
-	      if(y == startY || y == startY-1 || y == endY || x == endY+1){
-		updateMsg.x = x;
-		updateMsg.y = y;
-		updateMsg.cell = *cell;
-		MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
-	      }
+	  if(x == startX || x == startX-1 || x == endX || x == endX+1){
+	    if(y == startY || y == startY-1 || y == endY || x == endY+1){
+	      updateMsg.x = x;
+	      updateMsg.y = y;
+	      updateMsg.cell = *cell;
+	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	    }
 	  }
 	}
