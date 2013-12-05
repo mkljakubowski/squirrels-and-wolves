@@ -53,7 +53,6 @@
 \lstset{aboveskip=0.5cm,belowskip=0.5cm}
 \lstset{numbers=left}
 \lstset{columns=fixed}
-\lstset{language=java}
 
 
 
@@ -118,39 +117,77 @@ Paulo Tome (72419)\\
 \section*{MPI Architecture}
 
 Our program is based on a Master and Servant model.
-In this model, we have two sorts of computer, the master and the servants.
-In a few words, the each servants will deal only with a sub-board of the total board.
-The master will shatter the board, distribute the sub-boards to the servants and at the end, gather all the sub-boards to
-have the final result. At each iteration, he musts take care too about the synchronization of the results of the different servants.
-Let's show the pseudo code of them in detail.
+In this model, we have two sorts of nodes, the master and the servants.
+In few words, the master is the coordinator of the work, and the servants will deal only with a sub-board of the total board.
+Let's describe all of this more concretely.
+
+\paragraph{MPI Message}
+~\\
+
+We have severals type of messages between the master and the servants :
+
+\begin{enumerate}
+ \item \texttt{NEW\_BOARD(side:int)} : Message sent by the master to the servants to give them a part of the board.
+ \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cells.
+ \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a particular task.
+ \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
+ of a new generation.
+\end{enumerate}
 
 \paragraph{Master}
 ~\\
 
-\begin{lstlisting}
- loads world from file
- splits the world in N-1 parts
- sends NEW_BOARD(K) to every node
- sends correct all the board to every node + 1 cell border around it by sending UPDATE_CELL messages (now the nodes have data to work on)
- sends FINISHED to confirm sending all cells
- in 2*G step loop:
-   sends START_NEXT_GENERATION(color) to every node
-   starts listening on all channels for incoming updates, saves them
-   counts FINISHED messages - if count == N-1 then sub-gen finished
-   sends stored updates to all servants
-   sends FINISHED to all servants
- sends FINISHED to all servants to notify that all generations are finished
- starts to listen for UPDATE_CELL from all servants, save incoming cell into a world array
- counts incoming FINISHED messages - if N-1 the comutation is finished
- prints the output to stdout
- exits
+There is only one master in the program. He's in charge of the coordination of all the work. He does the following actions :
 
+\begin{lstlisting}
+Load the world from the input file
+Split the world in different parts (One per servant)
+Send a sub-board to every servants.
+Send FINISHED to confirm sending all cells
+
+for i in 0 -> 2*Nb of generations:
+    Send START_NEXT_GENERATION(color) to every node
+    Listen for incoming updates and save them
+    Count FINISHED messages
+    if(count == Nb of slaves):
+	break;
+    Send stored updates to all servants
+    Send FINISHED to all servants
+    
+Send FINISHED to all servants // all generations are finished
+Listen for UPDATE_CELL and save them
+Count FINISHED messages
+if(count == Nb of slaves):
+    Print output
+    Exit
 \end{lstlisting}
+
 
 \paragraph{Servants}
 ~\\
 
-All the other computers are the servants. Each receives a sub-board from the master
+All the other computers are servants of the master. Each of them receives a sub-board. The distribution of the work follow this idea.
+Each servants do the following actions :
+
+\begin{lstlisting}
+ Listen for NEW_BOARD message
+ Allocate memory for its board part
+ Listen for FINISHED message // all cells are in place
+ while true:
+    Listen for message
+    if(message = FINISHED):
+	break;
+    elif(message = START_NEXT_GENERATION(genInfo):
+	Start a new generation
+    Compute its part of the board
+    Send UPDATE_CELL to the master the message with the modified cells
+    Send FINISHED to the master
+    Listen for UPDATE_CELL messages from master
+    Update the cells and resolve conflicts
+    Listen for FINISHED message from master
+ Sends UPDATE_CELL to the master with all the cells.
+ Exit
+\end{lstlisting}
 
 
 

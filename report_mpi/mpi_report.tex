@@ -53,7 +53,6 @@
 \lstset{aboveskip=0.5cm,belowskip=0.5cm}
 \lstset{numbers=left}
 \lstset{columns=fixed}
-\lstset{language=java}
 
 
 
@@ -118,100 +117,78 @@ Paulo Tome (72419)\\
 \section*{MPI Architecture}
 
 Our program is based on a Master and Servant model.
-In this model, we have two sorts of computer, the master and the servants.
-In a few words, the master is the coordinator of the work, and the servants will deal only with a sub-board of the total board.
+In this model, we have two sorts of nodes, the master and the servants.
+In few words, the master is the coordinator of the work, and the servants will deal only with a sub-board of the total board.
+Let's describe all of this more concretely.
 
+\paragraph{MPI Message}
+~\\
+
+We have severals type of messages between the master and the servants :
+
+\begin{enumerate}
+ \item \texttt{NEW\_BOARD(side:int)} : Message sent by the master to the servants to give them a part of the board.
+ \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cells.
+ \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a particular task.
+ \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
+ of a new generation.
+\end{enumerate}
 
 \paragraph{Master}
 ~\\
 
-There is only one master in the application. He's in charge of coordinate all the work. He does the following actions :
+There is only one master in the program. He's in charge of the coordination of all the work. He does the following actions :
 
-\begin{enumerate}
- \item Loads the world from the input file.
- \item Splits the world in different parts (One per servant).
- \item Sends a sub-board to every servants.
- \item ???, Whats this step ?
- \item Sends a message to the servant to tell that he has send all the cells.
- \item Proceed a loop of $2 \times \texttt{Number of generation}$.
- \begin{enumerate}
-  \item 
- \end{enumerate}
+\begin{lstlisting}
+Load the world from the input file
+Split the world in different parts (One per servant)
+Send a sub-board to every servants.
+Send UPDATE_CELL to the servants with the cells of their sub-bord + the cells in the bord around.
+Send FINISHED to confirm sending all cells
 
- \item Sends a message to all the servants to notify that all the generations are finished.
- \item Starts to listen for an update message from the servants. This message contains the state of the cells.
- \item Saves the contains of the cells into the world array.
- \item Counts the number of finished messages from the servants. When all the servants has sent the message, the computation is finished.
- \item Prints the world and exits the program.
-\end{enumerate}
+for i in 0 -> 2*Nb of generations:
+    Send START_NEXT_GENERATION(color) to every node
+    Listen for incoming updates and save them
+    Count FINISHED messages
+    if(count == Nb of slaves):
+	break;
+    Send stored updates to all servants
+    Send FINISHED to all servants
+    
+Send FINISHED to all servants // all generations are finished
+Listen for UPDATE_CELL and save them
+Count FINISHED messages
+if(count == Nb of slaves):
+    Print output
+    Exit
+\end{lstlisting}
 
 
 \paragraph{Servants}
 ~\\
 
-All the other computers are the servants. Each receives a sub-board from the master
-
-
-
-\section*{Ghost lines}
-
-\section*{Performances analysis}
-
-
-\section*{Decomposition done}
-
-To understand our decomposition, we must explain before how our serial version works.
-The main work are done in the huge worldLoop :
+All the other computers are servants of the master. Each of them receives a sub-board. The distribution of the work follow this idea.
+Each servants do the following actions :
 
 \begin{lstlisting}
-for(i = 0 ; i < 4 * noOfGenerations ; i++){...}
+ Listen for NEW_BOARD message
+ Allocate memory for its board part
+ Listen for FINISHED message // all cells are in place
+ while true:
+    Listen for message
+    if(message = FINISHED):
+	break;
+    elif(message = START_NEXT_GENERATION(genInfo):
+	Start a new generation
+    Compute its part of the board
+    Send UPDATE_CELL to the master the message with the modified cells
+    Send FINISHED to the master
+    Listen for UPDATE_CELL messages from master
+    Update the cells and resolve conflicts
+    Listen for FINISHED message from master
+ Sends UPDATE_CELL to the master with all the cells.
+ Exit
 \end{lstlisting}
-
-What is particular is that we iterate to 4 times the number of generations. This structure was done to do the following things :
-
-\begin{enumerate}
- \item We proceed the red generation and we keep all the conflicting movement.
- \item We deal with the conflicting movement of the red generation.
- \item We proceed the black generation and we keep all the conflicting movement.
- \item We deal with the conflicting movement of the black generation.
-\end{enumerate}
-
-Each part are done in one particular iteration, the correct action are chosen thanks to modulo and conditional operation.
-With this structure we don't want to parallelize this main loop, but only his content. 
-And after each iteration we need to synchronize. So, our parallelization are done like this 
-
-\begin{lstlisting}
-#pragma omp parallel for private(x,y,cell)
-for(y = 0 ; y < worldSideLen ; y++){
-      for(x = 0 ; x < worldSideLen ; x++){
-	      //proceeding the cells
-      }
-)
-\end{lstlisting}
-
-Let's notice that we only parallelize on the row and not on the column because of the cache and to keep the adjacent portion of memory
-together.
-
-\section*{Conflict resolution}
-
-The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
-directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
-So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
-the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
-
-\section*{Load Balancing}
-Logic of every sub-generation is divied in two steps. 
-Selecting updates and updating itself. 
-Second phase is done per cell, so it is easy to parallelize. 
-Every cell has a list of updates that needs to be invoked on it. 
-Load balancing is done by diving those lists evenly between cores by dynamic sheduling. It's done by this pragma
-in the \texttt{update} fonction :
-
-\begin{lstlisting}
- #pragma omp parallel for schedule(dynamic,1)
-\end{lstlisting}
-
-We add it in the code, but it gave a slower execution time, so we didn't integrate it in our final version.
 
 \section*{Performances analysis}
 
