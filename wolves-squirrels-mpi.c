@@ -392,7 +392,10 @@ void processServant(int rank) {
   /* Servant loop */
   while (1){
     MPI_Irecv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    MPI_Request_get_status(req, &flag, &status);
+    flag = false;
+    while(!flag){
+      MPI_Request_get_status(req, &flag, &status);
+    }
     
     if(status.MPI_TAG == FINISHED_TAG){
       printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
@@ -449,7 +452,10 @@ void processServant(int rank) {
       /* listen for updates */
       while(1){
 	MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-	MPI_Request_get_status(req, &flag, &status);
+	flag = false;
+	while(!flag){
+	  MPI_Request_get_status(req, &flag, &status);
+	}
 
 	if(status.MPI_TAG == FINISHED_TAG){
 	  printf("Slave with rank %d is received all updates\n", rank);
@@ -524,7 +530,10 @@ void processMaster(){
     //if update -> propagate, if finished -> count until all finish
     while(1){
       MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-      MPI_Request_get_status(req, &flag, &status);
+      flag = false;
+      while(!flag){
+	MPI_Request_get_status(req, &flag, &status);
+      }
 
       if(status.MPI_TAG == UPDATE_CELL_TAG){
 	for(rank = 1; rank < nTasks; rank++){
@@ -556,7 +565,10 @@ void processMaster(){
   finishedServants = 0;
   while(1){
     MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    MPI_Request_get_status(req, &flag, &status);
+    flag = false;
+    while(!flag){
+      MPI_Request_get_status(req, &flag, &status);
+    }
 
     if(status.MPI_TAG == FINISHED_TAG){
       finishedServants++;
