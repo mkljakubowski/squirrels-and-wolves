@@ -1,7 +1,7 @@
 # parallel make
 export NUMCPUS:=$(shell grep -c ^processor /proc/cpuinfo)
 
-all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi wolves-squirrels-mpi+omp wolves-squirrels-mpi-tests MPI_Isend_MPI_Irecv
+all: wolves-squirrels-serial wolves-squirrels-omp wolves-squirrels-mpi
 
 wolves-squirrels-serial: wolves-squirrels-serial.c
 	gcc -o wolves-squirrels-serial -g -Wall -pedantic wolves-squirrels-serial.c

@@ -382,7 +382,7 @@ void processServant(int rank) {
   update_cell_message_t updateMsg;
 
   buffer = (int *)(malloc(sizeof(int) * 128));
-  MPI_Recv(buffer, 2, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
+  MPI_Recv(buffer, 4, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
   startX = buffer[0];
   endX = buffer[1];
   startY = buffer[2];
@@ -442,7 +442,7 @@ void processServant(int rank) {
       }
 
       /* send finished tag to master saying that all updates sent*/
-      MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 
       /* listen for updates */
       while(1){
