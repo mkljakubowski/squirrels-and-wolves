@@ -392,7 +392,7 @@ void processServant(int rank) {
   /* Servant loop */
   while (1){
     MPI_Irecv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    flag = false;
+    flag = 0;
     while(!flag){
       MPI_Request_get_status(req, &flag, &status);
     }
@@ -452,7 +452,7 @@ void processServant(int rank) {
       /* listen for updates */
       while(1){
 	MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-	flag = false;
+	flag = 0;
 	while(!flag){
 	  MPI_Request_get_status(req, &flag, &status);
 	}
@@ -530,7 +530,7 @@ void processMaster(){
     //if update -> propagate, if finished -> count until all finish
     while(1){
       MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-      flag = false;
+      flag = 0;
       while(!flag){
 	MPI_Request_get_status(req, &flag, &status);
       }
@@ -565,7 +565,7 @@ void processMaster(){
   finishedServants = 0;
   while(1){
     MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    flag = false;
+    flag = 0;
     while(!flag){
       MPI_Request_get_status(req, &flag, &status);
     }
