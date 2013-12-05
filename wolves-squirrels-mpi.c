@@ -472,7 +472,7 @@ void processServant(int rank) {
   }  
   
   //notify that all cells sent
-  MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+  MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
   free(buffer);
 }
 
@@ -514,17 +514,17 @@ void processMaster(){
     
     //tell servants to start subgen
     for(rank = 1; rank < nTasks; rank++){
-      MPI_Send(&color, 1, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
+      MPI_Send(&color, 2, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
     }    
     
     //if update -> propagate, if finished -> count until all finish
     while(1){
-      MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
       
       if(status.MPI_TAG == UPDATE_CELL_TAG){
 	for(rank = 1; rank < nTasks; rank++){
 	  if(rank != status.MPI_SOURCE){
-	    MPI_Send(buffer, 2, MPI_INT, rank, UPDATE_CELL_TAG, MPI_COMM_WORLD); //send updates to other servants
+	    MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, UPDATE_CELL_TAG, MPI_COMM_WORLD); //send updates to other servants
 	  }
 	}
       }else if(status.MPI_TAG == FINISHED_TAG){
@@ -533,7 +533,7 @@ void processMaster(){
       
       if(finishedServants == nSlaves){
 	for(rank = 1; rank < nTasks; rank++){
-	  MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
+	  MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
 	}
 	break; //all servants have finished
       }
