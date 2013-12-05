@@ -436,7 +436,7 @@ void processServant(int rank) {
 	      updateMsg.x = x;
 	      updateMsg.y = y;
 	      updateMsg.cell = *cell;
-	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	    }
 	  }
 	}
@@ -454,7 +454,7 @@ void processServant(int rank) {
 	  break;
 	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  cell = getCell(updateMsg.x, updateMsg.y);
-	  *cell.updates[0] = &updateMsg.cell;
+	  cell->updates[0] = &updateMsg.cell;
 	  cell->updateSize = 1;
 	  update(cell);
 	  cell->updateSize = 0;
@@ -470,7 +470,7 @@ void processServant(int rank) {
       updateMsg.x = x;
       updateMsg.y = y;
       updateMsg.cell = *cell;
-      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
     }
   }
 
@@ -522,7 +522,7 @@ void processMaster(){
     
     //if update -> propagate, if finished -> count until all finish
     while(1){
-      MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
       
       if(status.MPI_TAG == UPDATE_CELL_TAG){
 	for(rank = 1; rank < nTasks; rank++){
@@ -553,7 +553,7 @@ void processMaster(){
   /* master listens for cells after compytation */
   finishedServants = 0;
   while(1){
-    MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     if(status.MPI_TAG == FINISHED_TAG){
       finishedServants++;
