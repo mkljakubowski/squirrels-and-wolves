@@ -561,7 +561,7 @@ void processMaster(){
     }
   }
 
-  /* printWorld(); */
+  printWorld();
   free(buffer);
 }
 
