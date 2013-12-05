@@ -301,7 +301,7 @@ void update(cell_t* cell){
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
       eat(cell, cell->updates[i]); //if wolf->squirrel then eat
-    }else if(cell->updates[i]->type != EMPTY){
+    }else{
       move(cell, cell->updates[i]); //else move
     }
   }
@@ -434,7 +434,7 @@ void processServant(int rank) {
 	      updateMsg.x = x;
 	      updateMsg.y = y;
 	      updateMsg.cell = *cell;
-	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+//  	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	    }
 	  }
 	}
@@ -457,7 +457,6 @@ void processServant(int rank) {
 	}
       }
     }
-
   }
 
   //send all cells belonging to servant to master
@@ -473,6 +472,7 @@ void processServant(int rank) {
 
   //notify that all cells sent
   MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+
   free(buffer);
 }
 
@@ -509,7 +509,7 @@ void processMaster(){
 
   //logic loop of master
   for(subGenNo = 0 ; subGenNo < 2* noOfGenerations ; subGenNo++){
-    color = (subGenNo % 2 == 1)?RED:BLACK;
+    color = (subGenNo % 2 == 1)?BLACK:RED;
     finishedServants = 0;
 
     //tell servants to start subgen
@@ -537,9 +537,7 @@ void processMaster(){
 	}
 	break; //all servants have finished
       }
-
     }
-
   }
 
   /* master tells slaves that all iterations are finished */
@@ -547,7 +545,7 @@ void processMaster(){
     MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished all generations
   }
 
-  /* master listens for cells after compytation */
+  /* master listens for cells after computation */
   finishedServants = 0;
   while(1){
     MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -564,7 +562,6 @@ void processMaster(){
   }
 
   printWorld();
-
   free(buffer);
 }
 

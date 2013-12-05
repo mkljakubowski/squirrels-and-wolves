@@ -416,7 +416,7 @@ int main(int argc, char **argv){
 //   printWorld2d(stdout);
   /* pressEntertoContinue(); */
   worldLoop(noOfGenerations);
-//   printWorld();
+  printWorld();
 
   fclose(input);
   return 0;

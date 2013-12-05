@@ -10,7 +10,7 @@ wolves-squirrels-omp: wolves-squirrels-omp.c
 	gcc -o wolves-squirrels-omp -g -Wall -pedantic -fopenmp wolves-squirrels-omp.c
 
 run-serial: wolves-squirrels-serial
-	./wolves-squirrels-serial input 4 4 4 4
+	./wolves-squirrels-serial ex3.in 10 10 10 10
 
 run-serial2: wolves-squirrels-serial
 	./wolves-squirrels-serial ex3.in 10 10 10 1000 > serial
