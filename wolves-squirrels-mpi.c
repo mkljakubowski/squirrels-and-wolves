@@ -421,21 +421,14 @@ void processServant(int rank) {
       for(y = startY ; y < endY ; y++){
 	for(x = startX ; x < endX ; x++){
 	    update(cell);
-	    //if it is on edge send it as UPDATE_CELL
+
+	    //if it is on edge send it	    
 	}
       }
       
+      /* send finished tag to master */
       MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
-      
-      while (1){
-	MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-	if(status.MPI_TAG == FINISHED_TAG){
-	  printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
-	  break;
-	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
-	  //update received cell
-	}
-      }
+      /* Listens for UPDATE_CELL messages, saves messages to board */
 
     }
 
