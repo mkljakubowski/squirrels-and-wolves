@@ -1,8 +1,8 @@
 universe = parallel
 executable = /usr/sbin/ompiwrapper.sh
-arguments = "mpirun -np 8 wolves-squirrels-mpi ex3.in 10 10 10 10"
+arguments = "wolves-squirrels-mpi exBig.in 10 10 10 2000"
 log = outputs/log
 output = outputs/out
 error = outputs/err
-machine_count = 8
+machine_count = 4
 queue
