@@ -427,17 +427,18 @@ void processServant(int rank) {
 
       for(y = 0 ; y < worldSideLen ; y++){
 	for(x = 0 ; x < worldSideLen ; x++){
-	    update(cell);
+	  cell = getCell(x,y);
+	  update(cell);
 
-	    //send cells that are on the edge of my board
-	    if(x == startX || x == startX-1 || x == endX || x == endX+1){
-	      if(y == startY || y == startY-1 || y == endY || x == endY+1){
-		updateMsg.x = x;
-		updateMsg.y = y;
-		updateMsg.cell = *cell;
-		MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
-	      }
+	  //send cells that are on the edge of my board
+	  if(x == startX || x == startX-1 || x == endX || x == endX+1){
+	    if(y == startY || y == startY-1 || y == endY || x == endY+1){
+	      updateMsg.x = x;
+	      updateMsg.y = y;
+	      updateMsg.cell = *cell;
+	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 	    }
+	  }
 	}
       }
 
