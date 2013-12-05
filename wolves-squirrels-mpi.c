@@ -485,8 +485,13 @@ void processMaster(){
     
     while(1){
       MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+      
       if(status.MPI_TAG == UPDATE_CELL_TAG){
-	//send to all other servants
+	for(rank = 1; rank < nTasks; rank++){
+	  if(rank != status.MPI_SOURCE){
+	    MPI_Send(buffer, 2, MPI_INT, rank, UPDATE_CELL_TAG, MPI_COMM_WORLD); //send updates to other servants
+	  }
+	}
       }else if(status.MPI_TAG == FINISHED_TAG){
 	finishedServants++;
       }
