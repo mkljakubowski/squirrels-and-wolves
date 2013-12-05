@@ -442,7 +442,7 @@ void processServant(int rank) {
 	if(status.MPI_TAG == FINISHED_TAG){
 	  printf("Slave with rank %d is received all updates\n", rank);
 	  break;
-	}else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
+	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  //update received cell
 	}
       }
