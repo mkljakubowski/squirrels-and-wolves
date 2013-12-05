@@ -32,6 +32,11 @@ typedef struct cell_t {
   int x, y;			/* Coordinates - to help debug - will be removed*/
 } cell_t;
 
+typedef struct update_cell_message_t {
+  int x,y;
+  cell_t cell;
+} update_cell_message_t;
+
 //list of neighbours of some cell
 typedef struct neighbours_t {
   cell_t** cells;
@@ -46,6 +51,7 @@ int wolfBreedingPeriod = 0;
 int squirrelBreedingPeriod = 0;
 int wolfStarvationPeriod = 0;
 int noOfGenerations = 0;
+int msgSize = sizeof(update_cell_message_t);
 
 /* FUNCTIONS */
 cell_t* getCell(int x, int y){
@@ -373,6 +379,7 @@ void processServant(int rank) {
   int x, y, startX, startY, endX, endY, *buffer;
   cell_t* cell;
   color_t color;
+  update_cell_message_t updateMsg;
   
   buffer = (int *)(malloc(sizeof(int) * 128));
   MPI_Recv(buffer, 2, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
@@ -425,37 +432,45 @@ void processServant(int rank) {
 	    //send cells that are on the edge of my board
 	    if(x == startX || x == startX-1 || x == endX || x == endX+1){
 	      if(y == startY || y == startY-1 || y == endY || x == endY+1){
-		//mpi send
+		updateMsg.x = x;
+		updateMsg.y = y;
+		updateMsg.cell = *cell;
+		MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 	      }
 	    }
 	}
       }
       
-      /* send finished tag to master */
+      /* send finished tag to master saying that all updates sent*/
       MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
-      /* Listens for UPDATE_CELL messages, saves messages to board */
 
+      /* listen for updates */
       while(1){
-	/* Listens for FINISHED or UPDATE */ 
-	MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+	MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
 	if(status.MPI_TAG == FINISHED_TAG){
 	  printf("Slave with rank %d is received all updates\n", rank);
 	  break;
-	}else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
-	  //update received cell
+	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
+	  cell = getCell(updateMsg.x, updateMsg.y);
+	  *cell = updateMsg.cell;
 	}
       }
     }
 
   }
   
+  //send all cells belonging to servant to master
   for(y = startY ; y < endY ; y++){
     for(x = startX ; x < endX ; x++){
-	//send cell to master
+      updateMsg.x = x;
+      updateMsg.y = y;
+      updateMsg.cell = *cell;
+      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
     }
   }  
   
+  //notify that all cells sent
   MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
   free(buffer);
 }
@@ -465,6 +480,8 @@ void processMaster(){
   MPI_Status status;
   int nTasks, rank, quotient, remainder, *buffer, nSlaves, subGenNo, finishedServants;
   color_t color;
+  update_cell_message_t updateMsg;
+  cell_t *cell;
   
   /* Find out how many processes there are in the default communicator */
   MPI_Comm_size(MPI_COMM_WORLD, &nTasks);
@@ -489,14 +506,17 @@ void processMaster(){
     MPI_Send(buffer, 4, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
 
+  //logic loop of master
   for(subGenNo = 0 ; subGenNo < 2* noOfGenerations ; subGenNo++){
     color = (subGenNo % 2 == 1)?RED:BLACK;
     finishedServants = 0;
     
+    //tell servants to start subgen
     for(rank = 1; rank < nTasks; rank++){
       MPI_Send(&color, 1, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
     }    
     
+    //if update -> propagate, if finished -> count until all finish
     while(1){
       MPI_Recv(buffer, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
       
@@ -521,11 +541,28 @@ void processMaster(){
     
   }  
   
+  /* master tells slaves that all iterations are finished */
   for(rank = 1; rank < nTasks; rank++){
     MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished all generations
   }
 
-  //received final cells
+  /* master listens for cells after compytation */
+  finishedServants = 0;
+  while(1){
+    MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+    if(status.MPI_TAG == FINISHED_TAG){
+      finishedServants++;
+      if(finishedServants == nSlaves){
+	break;
+      }
+    }else if(status.MPI_TAG == UPDATE_CELL_TAG){
+      cell = getCell(updateMsg.x, updateMsg.y);
+      *cell = updateMsg.cell;
+    }
+  }
+  
+  printWorld();
   
   free(buffer);
 }
