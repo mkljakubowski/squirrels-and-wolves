@@ -454,6 +454,7 @@ void processServant(int rank) {
 	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  cell = getCell(updateMsg.x, updateMsg.y);
 	  *cell = updateMsg.cell;
+	  cell->updateSize = 0; //just to make sure
 	}
       }
     }
