@@ -418,11 +418,16 @@ void processServant(int rank) {
 	}
       }
 
-      for(y = startY ; y < endY ; y++){
-	for(x = startX ; x < endX ; x++){
+      for(y = 0 ; y < worldSideLen ; y++){
+	for(x = 0 ; x < worldSideLen ; x++){
 	    update(cell);
 
-	    //if it is on edge send it	    
+	    //send cells that are on the edge of my board
+	    if(x == startX || x == startX-1 || x == endX || x == endX+1){
+	      if(y == startY || y == startY-1 || y == endY || x == endY+1){
+		//mpi send
+	      }
+	    }
 	}
       }
       
@@ -430,8 +435,17 @@ void processServant(int rank) {
       MPI_Send(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
       /* Listens for UPDATE_CELL messages, saves messages to board */
 
-      /* Listens for FINISHED meaning all cells are in place (blocking) */ 
-      MPI_Recv(buffer, 2, MPI_INT, MASTER, FINISHED_TAG, MPI_COMM_WORLD, &status);
+      while(1){
+	/* Listens for FINISHED or UPDATE */ 
+	MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+	if(status.MPI_TAG == FINISHED_TAG){
+	  printf("Slave with rank %d is received all updates\n", rank);
+	  break;
+	}else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
+	  //update received cell
+	}
+      }
     }
 
   }
@@ -497,12 +511,12 @@ void processMaster(){
       }
       
       if(finishedServants == nSlaves){
+	for(rank = 1; rank < nTasks; rank++){
+	  MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
+	}
 	break; //all servants have finished
       }
-    }
-
-    for(rank = 1; rank < nTasks; rank++){
-      MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
+      
     }
     
   }  
@@ -511,6 +525,8 @@ void processMaster(){
     MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished all generations
   }
 
+  //received final cells
+  
   free(buffer);
 }
 
