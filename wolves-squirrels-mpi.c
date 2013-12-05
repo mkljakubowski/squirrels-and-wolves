@@ -301,7 +301,7 @@ void update(cell_t* cell){
   for(i = 0 ; i < updates ; i++){
     if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
       eat(cell, cell->updates[i]); //if wolf->squirrel then eat
-    }else{
+    }else if(cell->updates[i]->type != EMPTY){
       move(cell, cell->updates[i]); //else move
     }
   }
@@ -393,10 +393,8 @@ void processServant(int rank) {
     MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     if(status.MPI_TAG == FINISHED_TAG){
-      printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
       break;
     }else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
-      printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
       color = buffer[0];
 
       for(y = startY ; y < endY ; y++){
@@ -431,12 +429,14 @@ void processServant(int rank) {
 	  update(cell);
 
 	  //send cells that are on the edge of my board
-	  if(x == startX || x == startX-1 || x == endX || x == endX+1){
-	    if(y == startY || y == startY-1 || y == endY || x == endY+1){
-	      updateMsg.x = x;
-	      updateMsg.y = y;
-	      updateMsg.cell = *cell;
-	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	  if(cell->type != EMPTY){
+	    if(x == startX || x == startX-1 || x == endX || x == endX+1){
+	      if(y == startY || y == startY-1 || y == endY || x == endY+1){
+		updateMsg.x = x;
+		updateMsg.y = y;
+		updateMsg.cell = *cell;
+		MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+	      }
 	    }
 	  }
 	}
@@ -450,14 +450,12 @@ void processServant(int rank) {
 	MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
 	if(status.MPI_TAG == FINISHED_TAG){
-	  printf("Slave with rank %d is received all updates\n", rank);
 	  break;
 	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  cell = getCell(updateMsg.x, updateMsg.y);
 	  cell->updates[0] = &updateMsg.cell;
 	  cell->updateSize = 1;
 	  update(cell);
-	  cell->updateSize = 0;
 	}
       }
     }
@@ -467,6 +465,7 @@ void processServant(int rank) {
   //send all cells belonging to servant to master
   for(y = startY ; y < endY ; y++){
     for(x = startX ; x < endX ; x++){
+      cell = getCell(x, y);
       updateMsg.x = x;
       updateMsg.y = y;
       updateMsg.cell = *cell;
