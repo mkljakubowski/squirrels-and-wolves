@@ -118,18 +118,18 @@ Paulo Tome (72419)\\
 
 Our program is based on a Master and Servant model.
 In this model, we have two sorts of nodes, the master and the servants.
-In few words, the master is the coordinator of the work, and the servants will deal only with a sub-board of the total board.
+In a few words, the master is the coordinator of the work and the rest is dealing only with a part of the total board.
 Let's describe all of this more concretely.
 
 \paragraph{MPI Message}
 ~\\
 
-We have severals type of messages between the master and the servants :
+We have several types of messages used for communication:
 
 \begin{enumerate}
- \item \texttt{NEW\_BOARD(from:Position, to:Position)} : Message sent by the master to the servants to give them a part of the board.
- \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cells.
- \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a particular task.
+ \item \texttt{NEW\_BOARD(from:Position, to:Position)} : Message sent by the master to the servants to assign them a part of the board.
+ \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cell.
+ \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a some task.
  \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
  of a new generation.
 \end{enumerate}
@@ -189,16 +189,16 @@ Each servants do the following actions :
 \end{lstlisting}
 
 \section*{Conflict resolution}
-Given that the algorithm keeps the same idea than the serial version, the way conflict resolution will be nearby the same. 
+Given that the algorithm follows the same idea as the serial version, the conflict resolution will be the same. 
 The only difference is in the sub-board edges where the servants need information about a part of the board that not belongs to them.
-In these cases, it's the master that's in charge to send messages to ensure the consistency of the board.
+In these cases, it's the master that's in charge to send messages to ensure the consistency of the board. Servants upon receiveing a cell have to update the usual way.
 \section*{Load balancing}
 With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}
 However, the number of dynamic elements in each parts is not taken into account for the shattering of the board. So it's possible
-that some servants has more or less work to do.
+that some servant has more or less work to do.
 \section*{Performances analysis}
 
-The following array recaps the execution time of the MPI version with severals numbers of nodes in the cluster.
+The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the \texttt{Borg} cluster.
 \begin{table}[!ht]
 \centering
 \begin{tabular}{|c||c|c|c|c|}
@@ -217,35 +217,38 @@ The following array recaps the execution time of the MPI version with severals n
 \caption{Performances for the different instances on \texttt{Borg}.}
 \end{table}
 
-% \begin{table}[!ht]
-% \centering
-% \begin{tabular}{|c||c|c|c|c|}
-%   \hline
-%     Instance     & Serial   & 2 nodes   & 4 nodes   \\
-%   \hline
-%     ex3.in       &       &  6 sec       & 8 sec  \\ 
-%   \hline
-%     world\_10.in &    0.028 sec   &  5 sec      & 8 sec  \\ 
-%   \hline
-%    world\_100.in &    1.86 sec   &   10 sec     &     \\ 
-%   \hline
-%   world\_1000.in &    2m20.469s  &    4m27.751s   & 3 min 52 sec   \\ 
-%   \hline
-% \end{tabular}
-% \caption{Performances for the different instances in local.}
-% \end{table}
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c||c|c|c|c|}
+  \hline
+    Instance     & Serial   & 2 nodes   & 4 nodes   \\
+  \hline
+    ex3.in       &    1.17 sec   &  1.02 sec  & 1.77 sec  \\ 
+  \hline
+    world\_10.in &    0.028 sec   &  0.04 sec      & 0.06 sec   \\ 
+  \hline
+   world\_100.in &    1.92 sec   &   1.89 sec     &  1.82 sec   \\ 
+  \hline
+  world\_1000.in &    3 min 55 sec  &    4 min 27sec   & 3 min 58 sec   \\ 
+  \hline
+\end{tabular}
+\caption{Performances for the different instances in local.}
+\end{table}
 
 
-We did these experiments on the \texttt{Borg} cluster with 2000 generations.
-\\
-
-At a first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and
+At first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and
 to decrease for the big ones. This can be explained easily. The bottleneck of a distributed program is the cost of the communications
-between the nodes. For the smallest instances, the gain of the distribution of task is overtaken by the cost of the communication.
+between the nodes. If a node has very little work to do it spends almost all of its time sending or receiving.
 Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
 the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
 significantly decreases.
-	
+\\
+
+Another issue to point out is that in our design one of the nodes is doing no computation. The master is just a director which tells all other nodes what to do. His role is very important but it reduces our oportunity to have high speedup. This where the Amdhal's law hits us.
+\\
+
+\section*{Conclusion}
+During this semester we run the same program in three different execution modes. First in serial mode we saw that it takes almost no time to do little computation. Next with OpenMP we saw the advantage of using multiple cores for a bit larger problems but was slower for small ones. Then in this exercie we tested MPI version which showed us advantages of distibuted enviroment. Startup time of a task was very long and a lot of time was consumed by communication but by smart desgin we were able to reduce both and show that for huge problems it is the only way to have acceptable execution times. 
 
 \end{document}
 

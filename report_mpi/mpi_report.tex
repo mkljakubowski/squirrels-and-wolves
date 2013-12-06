@@ -198,7 +198,7 @@ However, the number of dynamic elements in each parts is not taken into account 
 that some servant has more or less work to do.
 \section*{Performances analysis}
 
-The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the texttt{Borg} cluster.
+The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the \texttt{Borg} cluster.
 \begin{table}[!ht]
 \centering
 \begin{tabular}{|c||c|c|c|c|}
@@ -241,7 +241,8 @@ to decrease for the big ones. This can be explained easily. The bottleneck of a 
 between the nodes. If a node has very little work to do it spends almost all of its time sending or receiving.
 Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
 the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
-significantly decreases.
+significantly decreases\footnote{In the \footnote{Cluster}}. However, we see that in local, for all of these instances, the MPI version doesn't beat the serial one.
+We suspect a communication cost to high.
 \\
 
 Another issue to point out is that in our design one of the nodes is doing no computation. The master is just a director which tells all other nodes what to do. His role is very important but it reduces our oportunity to have high speedup. This where the Amdhal's law hits us.
