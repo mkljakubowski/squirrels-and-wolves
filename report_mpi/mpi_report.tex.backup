@@ -127,7 +127,7 @@ Let's describe all of this more concretely.
 We have severals type of messages between the master and the servants :
 
 \begin{enumerate}
- \item \texttt{NEW\_BOARD(side:int)} : Message sent by the master to the servants to give them a part of the board.
+ \item \texttt{NEW\_BOARD(from:Position, to:Position)} : Message sent by the master to the servants to give them a part of the board.
  \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cells.
  \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a particular task.
  \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
@@ -142,20 +142,19 @@ There is only one master in the program. He's in charge of the coordination of a
 \begin{lstlisting}
 Load the world from the input file
 Split the world in different parts (One per servant)
-Send a sub-board to every servants.
-Send FINISHED to confirm sending all cells
+Send position of a sub-board to every servant.
 
 for i in 0 -> 2*Nb of generations:
     Send START_NEXT_GENERATION(color) to every node
     Listen for incoming updates and save them
-    Count FINISHED messages
+    Count received FINISHED messages
     if(count == Nb of slaves):
-	break;
+		break;
     Send stored updates to all servants
     Send FINISHED to all servants
     
 Send FINISHED to all servants // all generations are finished
-Listen for UPDATE_CELL and save them
+Listen for UPDATE_CELL and save them to master board
 Count FINISHED messages
 if(count == Nb of slaves):
     Print output
@@ -170,126 +169,56 @@ All the other computers are servants of the master. Each of them receives a sub-
 Each servants do the following actions :
 
 \begin{lstlisting}
- Listen for NEW_BOARD message
- Allocate memory for its board part
- Listen for FINISHED message // all cells are in place
+ Load the world from a file
+ Listen for NEW_BOARD message to select a piece
+ 
  while true:
     Listen for message
     if(message = FINISHED):
-	break;
+		break;
     elif(message = START_NEXT_GENERATION(genInfo):
-	Start a new generation
     Compute its part of the board
     Send UPDATE_CELL to the master the message with the modified cells
     Send FINISHED to the master
     Listen for UPDATE_CELL messages from master
     Update the cells and resolve conflicts
     Listen for FINISHED message from master
+    
  Sends UPDATE_CELL to the master with all the cells.
  Exit
 \end{lstlisting}
 
-
-
-\section*{Ghost lines}
-
-\section*{Performances analysis}
-
-
-\section*{Decomposition done}
-
-To understand our decomposition, we must explain before how our serial version works.
-The main work are done in the huge worldLoop :
-
-\begin{lstlisting}
-for(i = 0 ; i < 4 * noOfGenerations ; i++){...}
-\end{lstlisting}
-
-What is particular is that we iterate to 4 times the number of generations. This structure was done to do the following things :
-
-\begin{enumerate}
- \item We proceed the red generation and we keep all the conflicting movement.
- \item We deal with the conflicting movement of the red generation.
- \item We proceed the black generation and we keep all the conflicting movement.
- \item We deal with the conflicting movement of the black generation.
-\end{enumerate}
-
-Each part are done in one particular iteration, the correct action are chosen thanks to modulo and conditional operation.
-With this structure we don't want to parallelize this main loop, but only his content. 
-And after each iteration we need to synchronize. So, our parallelization are done like this 
-
-\begin{lstlisting}
-#pragma omp parallel for private(x,y,cell)
-for(y = 0 ; y < worldSideLen ; y++){
-      for(x = 0 ; x < worldSideLen ; x++){
-	      //proceeding the cells
-      }
-)
-\end{lstlisting}
-
-Let's notice that we only parallelize on the row and not on the column because of the cache and to keep the adjacent portion of memory
-together.
-
 \section*{Conflict resolution}
-
-The conflict resolution is done by the architecture of the serial version. Indeed, all the conflicting movement are not made
-directly but their are kept in memory and proceeded after each subgeneration with the \texttt{update} method.
-So, with the parallelization, given that we have an implicit synchronization after each iteration of the main loop (generation loop),
-the conflict are implicitly resolved. We made sure after that our outputs with severals threads are always the same than the serial version.
-
-\section*{Load Balancing}
-Logic of every sub-generation is divied in two steps. 
-Selecting updates and updating itself. 
-Second phase is done per cell, so it is easy to parallelize. 
-Every cell has a list of updates that needs to be invoked on it. 
-Load balancing is done by diving those lists evenly between cores by dynamic sheduling. It's done by this pragma
-in the \texttt{update} fonction :
-
-\begin{lstlisting}
- #pragma omp parallel for schedule(dynamic,1)
-\end{lstlisting}
-
-We add it in the code, but it gave a slower execution time, so we didn't integrate it in our final version.
-
+Given that the algorithm keeps the same idea than the serial version, the way conflict resolution will be nearby the same. 
+The only difference is in the sub-board edges where the servants need information about a part of the board that not belongs to them.
+In these cases, it's the master that's in charge to send messages to ensure the consistency of the board.
+\section*{Load balancing}
+With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}
+However, the number of dynamic elements in each parts is not taken into account for the shattering of the board. So it's possible
+that some servants has more or less work to do.
 \section*{Performances analysis}
 
 The following array recaps the execution time of the OMP version with severals numbers of threads.
 \begin{table}[!ht]
 \centering
-\begin{tabular}{|r||r|r|r|r|}
+\begin{tabular}{|c||c|c|c|c|}
   \hline
-    Instance     & 1 thread   & 2 threads   & 4 threads  & 8 threads  \\
+    Instance     & 1 node (Serial)   & 2 nodes   & 4 nodes  & 8 nodes  \\
   \hline
-    ex3.in       &  0.008     & 0.008        & 0.017       &  0.020 \\ 
+    ex3.in       &       &  6 sec       & 8 sec       &  13 sec \\ 
   \hline
-    world\_10.in &  0.011      &  0.006       & 0.021       & 0.035 \\ 
+    world\_10.in &       &  5 sec      & 8 sec      &  \\ 
   \hline
-   world\_100.in &  0.111      & 0.070        & 0.068      & 0.1278 \\ 
+   world\_100.in &       &   10 sec     &      &  \\ 
   \hline
-  world\_1000.in &  12.885   & 7.712       & 6.534      &  6.522 \\ 
+  world\_1000.in &     &    6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
   \hline
 \end{tabular}
-\caption{Performances (in sec) for the different instances.}
+\caption{Performances for the different instances.}
 \end{table}
 
-We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
-let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
-First, we notice that for the smallest instance, \texttt{ex3.in},
-more threads we have, the program is slower. This was expected. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
-synchronization for example), surpass the gain of multithreading.
-For the instance \texttt{world\_10.in}, we notice it from 4 threads.
-For the biggest instance, \texttt{world\_1000.in}, we see the speedup when we deal with severals threads. The speedup per core decreases with the number
-of threads\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
-Finally, given that the computer has 4 cores, we are not interested in creating more than.
-\\
-
-Now, let's compare the execution time for  world\_1000.in with the ideal speedup\footnote{$S = \frac{T_{serial}}{N_{threads}}$}
-with different numbers of threads :
+We did these experiments on the \texttt{Borg} cluster with 2000 generations.
 
 
-
-With two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
-Indeed, there is always overhead when we deal with threads and not all of our code is multithreaded, so it's normal that we don't reach
-the ideal result.
 \end{document}
 

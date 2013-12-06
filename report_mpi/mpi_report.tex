@@ -171,6 +171,7 @@ Each servants do the following actions :
 \begin{lstlisting}
  Load the world from a file
  Listen for NEW_BOARD message to select a piece
+ 
  while true:
     Listen for message
     if(message = FINISHED):
@@ -182,48 +183,50 @@ Each servants do the following actions :
     Listen for UPDATE_CELL messages from master
     Update the cells and resolve conflicts
     Listen for FINISHED message from master
+    
  Sends UPDATE_CELL to the master with all the cells.
  Exit
 \end{lstlisting}
 
+\section*{Conflict resolution}
+Given that the algorithm keeps the same idea than the serial version, the way conflict resolution will be nearby the same. 
+The only difference is in the sub-board edges where the servants need information about a part of the board that not belongs to them.
+In these cases, it's the master that's in charge to send messages to ensure the consistency of the board.
+\section*{Load balancing}
+With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}
+However, the number of dynamic elements in each parts is not taken into account for the shattering of the board. So it's possible
+that some servants has more or less work to do.
 \section*{Performances analysis}
 
-The following array recaps the execution time of the OMP version with severals numbers of threads.
+The following array recaps the execution time of the MPI version with severals numbers of nodes in the cluster.
 \begin{table}[!ht]
 \centering
-\begin{tabular}{|r||r|r|r|r|}
+\begin{tabular}{|c||c|c|c|c|}
   \hline
-    Instance     & 1 thread   & 2 threads   & 4 threads  & 8 threads  \\
+    Instance     & 1 node (Serial)   & 2 nodes   & 4 nodes  & 8 nodes  \\
   \hline
-    ex3.in       &  0.008     & 0.008        & 0.017       &  0.020 \\ 
+    ex3.in       &       &  6 sec       & 8 sec       &  13 sec \\ 
   \hline
-    world\_10.in &  0.011      &  0.006       & 0.021       & 0.035 \\ 
+    world\_10.in &       &  5 sec      & 8 sec      &  \\ 
   \hline
-   world\_100.in &  0.111      & 0.070        & 0.068      & 0.1278 \\ 
+   world\_100.in &       &   10 sec     &      &  \\ 
   \hline
-  world\_1000.in &  12.885   & 7.712       & 6.534      &  6.522 \\ 
+  world\_1000.in &     &    6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
   \hline
 \end{tabular}
-\caption{Performances (in sec) for the different instances.}
+\caption{Performances for the different instances.}
 \end{table}
 
-We did these experiments on a computer with 4 cores with the input \texttt{instance 10 9 8 100}. We
-let to the "iteration print" in the code\footnote{If we remove it, the execution time is to fast to do an useful analyze.}.
-First, we notice that for the smallest instance, \texttt{ex3.in},
-more threads we have, the program is slower. This was expected. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
-synchronization for example), surpass the gain of multithreading.
-For the instance \texttt{world\_10.in}, we notice it from 4 threads.
-For the biggest instance, \texttt{world\_1000.in}, we see the speedup when we deal with several threads. The speedup per core decreases with the number
-of threads\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
-Finally, given a computer with 4 cores, we are not interested in creating more than 1 thread per core.
+We did these experiments on the \texttt{Borg} cluster with 2000 generations.
 \\
 
-Now, let's compare the execution time for  world\_1000.in with the ideal speedup\footnote{$S = \frac{T_{serial}}{N_{threads}}$}
-with different numbers of threads :
+At a first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and
+to decrease for the big ones. This can be explained easily. The bottleneck of a distributed program is the cost of the communications
+between the nodes. For the smallest instances, the gain of the distribution of task is overtaken by the cost of the communication.
+Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
+the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
+significantly decreases.
+	
 
-
-
-With two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
-Indeed, there is always overhead when we deal with threads and not all of our code is multithreaded and one thread(master) does no computation, just coordinates computation and communication.
 \end{document}
 
