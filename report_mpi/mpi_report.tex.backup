@@ -198,27 +198,54 @@ However, the number of dynamic elements in each parts is not taken into account 
 that some servants has more or less work to do.
 \section*{Performances analysis}
 
-The following array recaps the execution time of the OMP version with severals numbers of threads.
+The following array recaps the execution time of the MPI version with severals numbers of nodes in the cluster.
 \begin{table}[!ht]
 \centering
 \begin{tabular}{|c||c|c|c|c|}
   \hline
-    Instance     & 1 node (Serial)   & 2 nodes   & 4 nodes  & 8 nodes  \\
+    Instance     &  2 nodes   & 4 nodes  & 8 nodes  \\
   \hline
-    ex3.in       &       &  6 sec       & 8 sec       &  13 sec \\ 
+    ex3.in       &    6 sec       & 8 sec       &  13 sec \\ 
   \hline
-    world\_10.in &       &  5 sec      & 8 sec      &  \\ 
+    world\_10.in &    5 sec      & 8 sec      &  \\ 
   \hline
-   world\_100.in &       &   10 sec     &      &  \\ 
+   world\_100.in &    10 sec     &      &  \\ 
   \hline
-  world\_1000.in &     &    6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
+  world\_1000.in &     6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
   \hline
 \end{tabular}
 \caption{Performances for the different instances.}
 \end{table}
 
-We did these experiments on the \texttt{Borg} cluster with 2000 generations.
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c||c|c|c|c|}
+  \hline
+    Instance     & Serial   & 2 nodes   & 4 nodes   \\
+  \hline
+    ex3.in       &       &  6 sec       & 8 sec  \\ 
+  \hline
+    world\_10.in &    0.028 sec   &  5 sec      & 8 sec  \\ 
+  \hline
+   world\_100.in &    1.86 sec   &   10 sec     &     \\ 
+  \hline
+  world\_1000.in &    2m20.469s  &    6 min 1 sec   & 3 min 52 sec   \\ 
+  \hline
+\end{tabular}
+\caption{Performances for the different instances.}
+\end{table}
 
+
+We did these experiments on the \texttt{Borg} cluster with 2000 generations.
+\\
+
+At a first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and
+to decrease for the big ones. This can be explained easily. The bottleneck of a distributed program is the cost of the communications
+between the nodes. For the smallest instances, the gain of the distribution of task is overtaken by the cost of the communication.
+Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
+the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
+significantly decreases.
+	
 
 \end{document}
 
