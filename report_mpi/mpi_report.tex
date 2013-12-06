@@ -198,7 +198,7 @@ However, the number of dynamic elements in each parts is not taken into account 
 that some servants has more or less work to do.
 \section*{Performances analysis}
 
-The following array recaps the execution time of the MPI version with severals numbers of nodes in the cluster.
+The following tables recaps the execution time of the MPI version with severals numbers of nodes in local and in the texttt{Borg} cluster.
 \begin{table}[!ht]
 \centering
 \begin{tabular}{|c||c|c|c|c|}
@@ -217,26 +217,26 @@ The following array recaps the execution time of the MPI version with severals n
 \caption{Performances for the different instances on \texttt{Borg}.}
 \end{table}
 
-% \begin{table}[!ht]
-% \centering
-% \begin{tabular}{|c||c|c|c|c|}
-%   \hline
-%     Instance     & Serial   & 2 nodes   & 4 nodes   \\
-%   \hline
-%     ex3.in       &       &  6 sec       & 8 sec  \\ 
-%   \hline
-%     world\_10.in &    0.028 sec   &  5 sec      & 8 sec  \\ 
-%   \hline
-%    world\_100.in &    1.86 sec   &   10 sec     &     \\ 
-%   \hline
-%   world\_1000.in &    2m20.469s  &    4m27.751s   & 3 min 52 sec   \\ 
-%   \hline
-% \end{tabular}
-% \caption{Performances for the different instances in local.}
-% \end{table}
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c||c|c|c|c|}
+  \hline
+    Instance     & Serial   & 2 nodes   & 4 nodes   \\
+  \hline
+    ex3.in       &    1.17 sec   &  1.02 sec  & 1.77 sec  \\ 
+  \hline
+    world\_10.in &    0.028 sec   &  0.04 sec      & 0.06 sec   \\ 
+  \hline
+   world\_100.in &    1.92 sec   &   1.89 sec     &  1.82 sec   \\ 
+  \hline
+  world\_1000.in &    3 min 55 sec  &    4 min 27sec   & 3 min 58 sec   \\ 
+  \hline
+\end{tabular}
+\caption{Performances for the different instances in local.}
+\end{table}
 
 
-We did these experiments on the \texttt{Borg} cluster with 2000 generations.
+We did these experiments with 2000 generations.
 \\
 
 At a first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and

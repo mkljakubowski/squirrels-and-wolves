@@ -569,7 +569,7 @@ void processMaster(){
 int main(int argc, char **argv){
   FILE *input;	/* File descriptor */
   int rank;
-
+  double time;
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
@@ -605,7 +605,7 @@ int main(int argc, char **argv){
   }else{
     processServant(rank);
   }
-
+  printf("%f\n",time);
   MPI_Finalize();
   fclose(input);
   return EXIT_SUCCESS;

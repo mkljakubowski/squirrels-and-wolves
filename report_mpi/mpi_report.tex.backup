@@ -214,26 +214,26 @@ The following array recaps the execution time of the MPI version with severals n
   world\_1000.in &     6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
   \hline
 \end{tabular}
-\caption{Performances for the different instances.}
+\caption{Performances for the different instances on \texttt{Borg}.}
 \end{table}
 
-\begin{table}[!ht]
-\centering
-\begin{tabular}{|c||c|c|c|c|}
-  \hline
-    Instance     & Serial   & 2 nodes   & 4 nodes   \\
-  \hline
-    ex3.in       &       &  6 sec       & 8 sec  \\ 
-  \hline
-    world\_10.in &    0.028 sec   &  5 sec      & 8 sec  \\ 
-  \hline
-   world\_100.in &    1.86 sec   &   10 sec     &     \\ 
-  \hline
-  world\_1000.in &    2m20.469s  &    6 min 1 sec   & 3 min 52 sec   \\ 
-  \hline
-\end{tabular}
-\caption{Performances for the different instances.}
-\end{table}
+% \begin{table}[!ht]
+% \centering
+% \begin{tabular}{|c||c|c|c|c|}
+%   \hline
+%     Instance     & Serial   & 2 nodes   & 4 nodes   \\
+%   \hline
+%     ex3.in       &       &  6 sec       & 8 sec  \\ 
+%   \hline
+%     world\_10.in &    0.028 sec   &  5 sec      & 8 sec  \\ 
+%   \hline
+%    world\_100.in &    1.86 sec   &   10 sec     &     \\ 
+%   \hline
+%   world\_1000.in &    2m20.469s  &    4m27.751s   & 3 min 52 sec   \\ 
+%   \hline
+% \end{tabular}
+% \caption{Performances for the different instances in local.}
+% \end{table}
 
 
 We did these experiments on the \texttt{Borg} cluster with 2000 generations.
