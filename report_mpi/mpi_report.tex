@@ -127,7 +127,7 @@ Let's describe all of this more concretely.
 We have severals type of messages between the master and the servants :
 
 \begin{enumerate}
- \item \texttt{NEW\_BOARD(side:int)} : Message sent by the master to the servants to give them a part of the board.
+ \item \texttt{NEW\_BOARD(from:Position, to:Position)} : Message sent by the master to the servants to give them a part of the board.
  \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cells.
  \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a particular task.
  \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
@@ -142,21 +142,19 @@ There is only one master in the program. He's in charge of the coordination of a
 \begin{lstlisting}
 Load the world from the input file
 Split the world in different parts (One per servant)
-Send a sub-board to every servants.
-Send UPDATE_CELL to the servants with the cells of their sub-bord + the cells in the bord around.
-Send FINISHED to confirm sending all cells
+Send position of a sub-board to every servant.
 
 for i in 0 -> 2*Nb of generations:
     Send START_NEXT_GENERATION(color) to every node
     Listen for incoming updates and save them
-    Count FINISHED messages
+    Count received FINISHED messages
     if(count == Nb of slaves):
-	break;
+		break;
     Send stored updates to all servants
     Send FINISHED to all servants
     
 Send FINISHED to all servants // all generations are finished
-Listen for UPDATE_CELL and save them
+Listen for UPDATE_CELL and save them to master board
 Count FINISHED messages
 if(count == Nb of slaves):
     Print output
@@ -171,15 +169,13 @@ All the other computers are servants of the master. Each of them receives a sub-
 Each servants do the following actions :
 
 \begin{lstlisting}
- Listen for NEW_BOARD message
- Allocate memory for its board part
- Listen for FINISHED message // all cells are in place
+ Load the world from a file
+ Listen for NEW_BOARD message to select a piece
  while true:
     Listen for message
     if(message = FINISHED):
-	break;
+		break;
     elif(message = START_NEXT_GENERATION(genInfo):
-	Start a new generation
     Compute its part of the board
     Send UPDATE_CELL to the master the message with the modified cells
     Send FINISHED to the master
@@ -217,9 +213,9 @@ First, we notice that for the smallest instance, \texttt{ex3.in},
 more threads we have, the program is slower. This was expected. Indeed, given that the instance are small, the overhead of the threads (creation, repartition and
 synchronization for example), surpass the gain of multithreading.
 For the instance \texttt{world\_10.in}, we notice it from 4 threads.
-For the biggest instance, \texttt{world\_1000.in}, we see the speedup when we deal with severals threads. The speedup per core decreases with the number
+For the biggest instance, \texttt{world\_1000.in}, we see the speedup when we deal with several threads. The speedup per core decreases with the number
 of threads\footnote{We gain more from 1 to 2 threads than for 2 to 4 threads.}.
-Finally, given that the computer has 4 cores, we are not interested in creating more than.
+Finally, given a computer with 4 cores, we are not interested in creating more than 1 thread per core.
 \\
 
 Now, let's compare the execution time for  world\_1000.in with the ideal speedup\footnote{$S = \frac{T_{serial}}{N_{threads}}$}
@@ -228,7 +224,6 @@ with different numbers of threads :
 
 
 With two threads we are relatively close to the ideal speedup. However the gap grows with more threads. We expected this king of results.
-Indeed, there is always overhead when we deal with threads and not all of our code is multithreaded, so it's normal that we don't reach
-the ideal result.
+Indeed, there is always overhead when we deal with threads and not all of our code is multithreaded and one thread(master) does no computation, just coordinates computation and communication.
 \end{document}
 
