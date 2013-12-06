@@ -434,7 +434,7 @@ void processServant(int rank) {
 	      updateMsg.x = x;
 	      updateMsg.y = y;
 	      updateMsg.cell = *cell;
-//  	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
+  	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	    }
 	  }
 	}
