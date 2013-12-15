@@ -52,7 +52,7 @@ MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
 
 run-mpi: wolves-squirrels-mpi
 	mpirun -np $(NUMCPUS) ./wolves-squirrels-mpi ex3.in 10 10 10 $(GENS)
-	
+
 run-mpi-tests: wolves-squirrels-mpi-tests
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi-tests ex3.in 10 10 10 10
 

@@ -193,25 +193,27 @@ Given that the algorithm follows the same idea as the serial version, the confli
 The only difference is in the sub-board edges where the servants need information about a part of the board that not belongs to them.
 In these cases, it's the master that's in charge to send messages to ensure the consistency of the board. Servants upon receiveing a cell have to update the usual way.
 \section*{Load balancing}
-With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}
+With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}.
 However, the number of dynamic elements in each parts is not taken into account for the shattering of the board. So it's possible
 that some servant has more or less work to do.
 \section*{Performances analysis}
 
-The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the texttt{Borg} cluster.
+The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the \texttt{Borg} cluster.
 \begin{table}[!ht]
 \centering
 \begin{tabular}{|c||c|c|c|c|}
   \hline
     Instance     &  2 nodes   & 4 nodes  & 8 nodes  \\
   \hline
-    ex3.in       &    6 sec       & 8 sec       &  13 sec \\ 
+    ex3.in       &    6 sec       & 8 sec       &  13 sec \\
   \hline
-    world\_10.in &    5 sec      & 8 sec      &  \\ 
+    world\_10.in &    5 sec      & 8 sec      &  9 sec \\
   \hline
-   world\_100.in &    10 sec     &      &  \\ 
+   world\_100.in &    10 sec     & 10 sec     &  14 sec \\
   \hline
-  world\_1000.in &     6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\ 
+  world\_1000.in &     6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\
+  \hline
+  world\_10000.in\footnote{Tests made a different day on the cluster} &     > 30 min        &          > 30 min              &3 min 33 sec \\
   \hline
 \end{tabular}
 \caption{Performances for the different instances on \texttt{Borg}.}
@@ -241,7 +243,8 @@ to decrease for the big ones. This can be explained easily. The bottleneck of a 
 between the nodes. If a node has very little work to do it spends almost all of its time sending or receiving.
 Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
 the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
-significantly decreases.
+significantly decreases\footnote{In the \footnote{Cluster}}. However, we see that in local, for all of these instances, the MPI version doesn't beat the serial one.
+We suspect a communication cost too high.
 \\
 
 Another issue to point out is that in our design one of the nodes is doing no computation. The master is just a director which tells all other nodes what to do. His role is very important but it reduces our oportunity to have high speedup. This where the Amdhal's law hits us.

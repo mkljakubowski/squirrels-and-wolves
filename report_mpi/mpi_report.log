@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  6 DEC 2013 17:02
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2013.8.12)  6 DEC 2013 21:05
 entering extended mode
  %&-line parsing enabled.
 **mpi_report.tex
@@ -1088,11 +1088,16 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <6> on input line 196.
 
-Underfull \hbox (badness 10000) in paragraph at lines 239--241
+Underfull \hbox (badness 10000) in paragraph at lines 241--249
 
  []
 
-[2] [3] (./mpi_report.aux) ) 
+[2]
+Underfull \hbox (badness 10000) in paragraph at lines 250--252
+
+ []
+
+[3] (./mpi_report.aux) ) 
 Here is how much of TeX's memory you used:
  17278 strings out of 493848
  322150 string characters out of 1152823
@@ -1100,15 +1105,15 @@ Here is how much of TeX's memory you used:
  20180 multiletter control sequences out of 15000+50000
  60978 words of font info for 56 fonts, out of 3000000 for 9000
  714 hyphenation exceptions out of 8191
- 63i,9n,57p,444b,1615s stack positions out of 5000i,500n,10000p,200000b,50000s
-{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}</us
-r/share/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/pu
-blic/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmcsc10.pfb></usr/sh
-are/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/
-lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/
-fonts/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.p
-fb></usr/share/texmf/fonts/type1/public/lm/lmtt8.pfb>
-Output written on mpi_report.pdf (4 pages, 242806 bytes).
+ 63i,17n,57p,616b,1615s stack positions out of 5000i,500n,10000p,200000b,50000s
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc}</usr/sh
+are/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/public
+/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmcsc10.pfb></usr/share/
+texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/l
+mr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/font
+s/type1/public/lm/lmr8.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb><
+/usr/share/texmf/fonts/type1/public/lm/lmtt8.pfb>
+Output written on mpi_report.pdf (4 pages, 246543 bytes).
 PDF statistics:
  56 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
