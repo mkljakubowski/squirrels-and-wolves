@@ -275,11 +275,15 @@ void doWolfStuff(int x, int y, cell_t* cell){
 void update(cell_t* cell){
   int i, updates = cell->updateSize;
 
-  for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
-      eat(cell, cell->updates[i]); //if wolf->squirrel then eat
-    }else{
-      move(cell, cell->updates[i]); //else move
+  checkIfShouldDie(cell);
+  
+  if(cell->type != EMPTY){
+    for(i = 0 ; i < updates ; i++){
+      if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
+	eat(cell, cell->updates[i]); //if wolf->squirrel then eat
+      }else{
+	move(cell, cell->updates[i]); //else move
+      }
     }
   }
     

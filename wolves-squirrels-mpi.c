@@ -231,6 +231,8 @@ void move(cell_t* from, cell_t* to){
     //conflict, pick stronger squirrel
     from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
     copy(from, to);
+  }else if(from->type == EMPTY){
+    return;
   }else{
     copy(from, to);
   }
@@ -298,14 +300,18 @@ void doWolfStuff(int x, int y, cell_t* cell){
 void update(cell_t* cell){
   int i, updates = cell->updateSize;
 
-  for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
-      eat(cell, cell->updates[i]); //if wolf->squirrel then eat
-    }else{
-      move(cell, cell->updates[i]); //else move
+  checkIfShouldDie(cell);
+  
+  if(cell->type != EMPTY){
+    for(i = 0 ; i < updates ; i++){
+      if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
+	eat(cell, cell->updates[i]); //if wolf->squirrel then eat
+      }else{
+	move(cell, cell->updates[i]); //else move
+      }
     }
   }
-
+    
   cell->updateSize = 0;
 }
 
@@ -383,10 +389,10 @@ void processServant(int rank) {
 
   buffer = (int *)(malloc(sizeof(int) * 128));
   MPI_Recv(buffer, 4, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
-  startX = buffer[0];
-  endX = buffer[1];
-  startY = buffer[2];
-  endY = buffer[3];
+  startX = buffer[2];
+  endX = buffer[3];
+  startY = buffer[0];
+  endY = buffer[1];
 
   /* Servant loop */
   while (1){
@@ -429,8 +435,8 @@ void processServant(int rank) {
 	  update(cell);
 
 	  //send cells that are on the edge of my board
-	  if(x == startX || x == startX-1 || x == endX || x == endX+1){
-	    if(y == startY || y == startY-1 || y == endY || x == endY+1){
+	  if(x == startX || x == startX-1 || x == endX || x == endX-1){
+	    if(y == startY || y == startY-1 || y == endY || x == endY-1){
 	      updateMsg.x = x;
 	      updateMsg.y = y;
 	      updateMsg.cell = *cell;
@@ -440,7 +446,7 @@ void processServant(int rank) {
 	}
       }
 
-      /* send finished tag to master saying that all updates sent*/
+      /* send finished tag to master saying that all updates sent */
       MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 
       /* listen for updates */
@@ -451,9 +457,9 @@ void processServant(int rank) {
 	  break;
 	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  cell = getCell(updateMsg.x, updateMsg.y);
-	  cell->updates[0] = &updateMsg.cell;
-	  cell->updateSize = 1;
-	  update(cell);
+ 	  cell->updates[0] = &updateMsg.cell;
+ 	  cell->updateSize = 1;
+ 	  update(cell);
 	}
       }
     }
@@ -569,7 +575,7 @@ void processMaster(){
 int main(int argc, char **argv){
   FILE *input;	/* File descriptor */
   int rank;
-  double time;
+
   if(argc < 6){
     printf("ERROR: too few arguments.\n");
     fflush(stdout); /* force it to go out */
@@ -605,7 +611,6 @@ int main(int argc, char **argv){
   }else{
     processServant(rank);
   }
-  printf("%f\n",time);
   MPI_Finalize();
   fclose(input);
   return EXIT_SUCCESS;

@@ -1,3 +1,5 @@
+GENS=999
+
 # parallel make
 export NUMCPUS:=$(shell grep -c ^processor /proc/cpuinfo)
 
@@ -10,7 +12,7 @@ wolves-squirrels-omp: wolves-squirrels-omp.c
 	gcc -o wolves-squirrels-omp -g -Wall -fopenmp wolves-squirrels-omp.c
 
 run-serial: wolves-squirrels-serial
-	./wolves-squirrels-serial ex3.in 10 10 10 10
+	./wolves-squirrels-serial ex3.in 10 10 10 $(GENS)
 
 run-serial2: wolves-squirrels-serial
 	./wolves-squirrels-serial ex3.in 10 10 10 1000 > serial
@@ -49,8 +51,8 @@ MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
 	mpicc -o MPI_Isend_MPI_Irecv MPI_Isend_MPI_Irecv.c -g -Wall -pedantic -ansi
 
 run-mpi: wolves-squirrels-mpi
-	mpirun -np $(NUMCPUS) ./wolves-squirrels-mpi ex3.in 10 10 10 10
-
+	mpirun -np $(NUMCPUS) ./wolves-squirrels-mpi ex3.in 10 10 10 $(GENS)
+	
 run-mpi-tests: wolves-squirrels-mpi-tests
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi-tests ex3.in 10 10 10 10
 
