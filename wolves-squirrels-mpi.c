@@ -515,12 +515,12 @@ void processMaster(){
     //tell servants to start subgen
     for(rank = 1; rank < nTasks; rank++){
       MPI_Send(&color, 2, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
-    }    
-    
+    }
+
     //if update -> propagate, if finished -> count until all finish
     while(1){
       MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-      
+
       if(status.MPI_TAG == UPDATE_CELL_TAG){
 	for(rank = 1; rank < nTasks; rank++){
 	  if(rank != status.MPI_SOURCE){
