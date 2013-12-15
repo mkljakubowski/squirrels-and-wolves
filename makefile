@@ -49,7 +49,7 @@ MPI_Isend_MPI_Irecv: MPI_Isend_MPI_Irecv.c
 	mpicc -o MPI_Isend_MPI_Irecv MPI_Isend_MPI_Irecv.c -g -Wall -pedantic -ansi
 
 run-mpi: wolves-squirrels-mpi
-	mpirun -np $(NUMCPUS) ./wolves-squirrels-mpi ex3.in 10 10 10 10
+	mpirun -np $(NUMCPUS) ./wolves-squirrels-mpi ex3.in 10 10 10 1000 > mpi
 
 run-mpi-tests: wolves-squirrels-mpi-tests
 	mpirun -np $(NUMCPUS) wolves-squirrels-mpi-tests ex3.in 10 10 10 10
