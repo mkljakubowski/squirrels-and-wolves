@@ -231,6 +231,8 @@ void move(cell_t* from, cell_t* to){
     //conflict, pick stronger squirrel
     from->breeding = from->breeding > to->breeding ? from->breeding : to->breeding;
     copy(from, to);
+  }else if(from->type == EMPTY){
+    return;
   }else{
     copy(from, to);
   }
@@ -298,11 +300,15 @@ void doWolfStuff(int x, int y, cell_t* cell){
 void update(cell_t* cell){
   int i, updates = cell->updateSize;
 
-  for(i = 0 ; i < updates ; i++){
-    if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
-      eat(cell, cell->updates[i]); //if wolf->squirrel then eat
-    }else{
-      move(cell, cell->updates[i]); //else move
+  checkIfShouldDie(cell);
+
+  if(cell->type != EMPTY){
+    for(i = 0 ; i < updates ; i++){
+      if(cell->updates[i]->type == SQUIRREL && cell->type == WOLF){
+	eat(cell, cell->updates[i]); //if wolf->squirrel then eat
+      }else{
+	move(cell, cell->updates[i]); //else move
+      }
     }
   }
 
@@ -375,39 +381,26 @@ void printWorld(){
 
 /* ACTIONS OF ONE SINGLE SERVANT */
 void processServant(int rank) {
-  MPI_Request req;
   MPI_Status status;
-  int x, y, startX, startY, endX, endY, *buffer, flag;
+  int x, y, startX, startY, endX, endY, *buffer;
   cell_t* cell;
   color_t color;
   update_cell_message_t updateMsg;
 
   buffer = (int *)(malloc(sizeof(int) * 128));
-  MPI_Irecv(buffer, 4, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &req);
-  startX = buffer[0];
-  endX = buffer[1];
-  startY = buffer[2];
-  endY = buffer[3];
+  MPI_Recv(buffer, 4, MPI_INT, MASTER, NEW_BOARD_TAG, MPI_COMM_WORLD, &status);
+  startX = buffer[2];
+  endX = buffer[3];
+  startY = buffer[0];
+  endY = buffer[1];
 
-  for(y = 0 ; y < worldSideLen ; y++){
-    for(x = 0 ; x < worldSideLen ; x++){
-       getCell(x,y)->updateSize = 0;
-    }
-  }
-   
   /* Servant loop */
   while (1){
-    MPI_Irecv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    flag = 0;
-    while(!flag){
-      MPI_Request_get_status(req, &flag, &status);
-    }
-    
+    MPI_Recv(buffer, 2, MPI_INT, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
     if(status.MPI_TAG == FINISHED_TAG){
-      printf("Slave with rank %d is processing tag 'FINISHED_TAG'.\n", rank);
       break;
     }else if(status.MPI_TAG == START_NEXT_GENERATION_TAG){
-      printf("\nSlave with rank %d is processing tag 'START_NEXT_GENERATION_TAG'.\n", rank);
       color = buffer[0];
 
       for(y = startY ; y < endY ; y++){
@@ -442,62 +435,57 @@ void processServant(int rank) {
 	  update(cell);
 
 	  //send cells that are on the edge of my board
-	  if(x == startX || x == startX-1 || x == endX || x == endX+1){
-	    if(y == startY || y == startY-1 || y == endY || x == endY+1){
+	  if(x == startX || x == startX-1 || x == endX || x == endX-1){
+	    if(y == startY || y == startY-1 || y == endY || x == endY-1){
 	      updateMsg.x = x;
 	      updateMsg.y = y;
 	      updateMsg.cell = *cell;
-	      MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD, &req);
+  	      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
 	    }
 	  }
 	}
       }
-      printf("end gen\n");
 
-      /* send finished tag to master saying that all updates sent*/
-      MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD, &req);
+      /* send finished tag to master saying that all updates sent */
+      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
 
       /* listen for updates */
       while(1){
-	MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-	flag = 0;
-	while(!flag){
-	  MPI_Request_get_status(req, &flag, &status);
-	}
+	MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
 	if(status.MPI_TAG == FINISHED_TAG){
-	  printf("Slave with rank %d is received all updates\n", rank);
 	  break;
 	}else if(status.MPI_TAG == UPDATE_CELL_TAG){
 	  cell = getCell(updateMsg.x, updateMsg.y);
-	  *cell = updateMsg.cell;
-	  cell->updateSize = 0; //just to make sure
+ 	  cell->updates[0] = &updateMsg.cell;
+ 	  cell->updateSize = 1;
+ 	  update(cell);
 	}
       }
     }
-
   }
 
   //send all cells belonging to servant to master
   for(y = startY ; y < endY ; y++){
     for(x = startX ; x < endX ; x++){
+      cell = getCell(x, y);
       updateMsg.x = x;
       updateMsg.y = y;
       updateMsg.cell = *cell;
-      MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD, &req);
+      MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, UPDATE_CELL_TAG, MPI_COMM_WORLD);
     }
   }
 
   //notify that all cells sent
-  MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD, &req);
+  MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, FINISHED_TAG, MPI_COMM_WORLD);
+
   free(buffer);
 }
 
 /* ACTIONS OF THE MASTER */
 void processMaster(){
-  MPI_Request req;
   MPI_Status status;
-  int nTasks, rank, quotient, remainder, *buffer, nSlaves, subGenNo, finishedServants, flag;
+  int nTasks, rank, quotient, remainder, *buffer, nSlaves, subGenNo, finishedServants;
   color_t color;
   update_cell_message_t updateMsg;
   cell_t *cell;
@@ -522,31 +510,27 @@ void processMaster(){
       buffer[1] += remainder;
     }
 
-    MPI_Isend(buffer, 4, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD, &req);
+    MPI_Send(buffer, 4, MPI_INT, rank, NEW_BOARD_TAG, MPI_COMM_WORLD);
   }
 
   //logic loop of master
   for(subGenNo = 0 ; subGenNo < 2* noOfGenerations ; subGenNo++){
-    color = (subGenNo % 2 == 1)?RED:BLACK;
+    color = (subGenNo % 2 == 1)?BLACK:RED;
     finishedServants = 0;
 
     //tell servants to start subgen
     for(rank = 1; rank < nTasks; rank++){
-      MPI_Isend(&color, 2, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD, &req);
-    }    
-    
+      MPI_Send(&color, 2, MPI_INT, rank, START_NEXT_GENERATION_TAG, MPI_COMM_WORLD);
+    }
+
     //if update -> propagate, if finished -> count until all finish
     while(1){
-      MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-      flag = 0;
-      while(!flag){
-	MPI_Request_get_status(req, &flag, &status);
-      }
+      MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
       if(status.MPI_TAG == UPDATE_CELL_TAG){
 	for(rank = 1; rank < nTasks; rank++){
 	  if(rank != status.MPI_SOURCE){
-	    MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, UPDATE_CELL_TAG, MPI_COMM_WORLD, &req); //send updates to other servants
+	    MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, UPDATE_CELL_TAG, MPI_COMM_WORLD); //send updates to other servants
 	  }
 	}
       }else if(status.MPI_TAG == FINISHED_TAG){
@@ -555,28 +539,22 @@ void processMaster(){
 
       if(finishedServants == nSlaves){
 	for(rank = 1; rank < nTasks; rank++){
-	  MPI_Isend(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, FINISHED_TAG, MPI_COMM_WORLD, &req); //finished sending updates
+	  MPI_Send(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished sending updates
 	}
 	break; //all servants have finished
       }
-
     }
-
   }
 
   /* master tells slaves that all iterations are finished */
   for(rank = 1; rank < nTasks; rank++){
-    MPI_Isend(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD, &req); //finished all generations
+    MPI_Send(buffer, 2, MPI_INT, rank, FINISHED_TAG, MPI_COMM_WORLD); //finished all generations
   }
 
-  /* master listens for cells after compytation */
+  /* master listens for cells after computation */
   finishedServants = 0;
   while(1){
-    MPI_Irecv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, &req);
-    flag = 0;
-    while(!flag){
-      MPI_Request_get_status(req, &flag, &status);
-    }
+    MPI_Recv(&updateMsg, sizeof(update_cell_message_t), MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
     if(status.MPI_TAG == FINISHED_TAG){
       finishedServants++;
@@ -590,7 +568,6 @@ void processMaster(){
   }
 
   printWorld();
-
   free(buffer);
 }
 

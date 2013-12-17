@@ -1,0 +1,8 @@
+universe = parallel
+executable = /usr/sbin/ompiwrapper.sh
+arguments = "wolves-squirrels-mpi world_10.in 10 10 10 2000"
+log = outputs/log
+output = outputs/out
+error = outputs/err
+machine_count = 2
+queue

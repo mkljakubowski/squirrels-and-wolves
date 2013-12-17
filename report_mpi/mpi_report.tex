@@ -1,0 +1,257 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english] {babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{graphics}
+\usepackage{ulem}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{circuitikz}
+\usepackage{subfig}
+\usepackage[a4paper]{geometry}
+\geometry{hscale=0.7,vscale=0.7,centering}
+\usepackage{vmargin}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{moreverb}
+\usepackage{listings}
+\usepackage{qtree}
+\graphicspath{{IMAGES/}}
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{defi}{Définition}[section]
+\newtheorem{propri}{Propriété}[section]
+\newtheorem{ex}{Exemple}[section]
+\newtheorem{thesis}{Thèse}[section]
+\newtheorem{cor}{Corollaire}[section]
+
+\usepackage{color}
+
+\definecolor{gris}{rgb}{0.95,0.95,0.95}
+
+
+% Param�rage des listings
+\lstset{basicstyle=\footnotesize\ttfamily}
+\lstset{keywordstyle=\color[rgb]{0,0,1}\bfseries}
+\lstset{identifierstyle=\color{black}}
+\lstset{commentstyle=\color[rgb]{0,0.4,0}}
+\lstset{stringstyle=\color[rgb]{0.7,0,0}}
+\lstset{showstringspaces=false}
+\lstset{showtabs=false}
+\lstset{tabsize=3}
+\lstset{extendedchars=true}
+\lstset{breaklines=true}
+\lstset{postbreak={}}
+\lstset{breakautoindent=true}
+\lstset{breakindent=0pt}
+\lstset{xleftmargin=0.1cm}
+\lstset{xrightmargin=0cm}
+\lstset{frame=tb,rulecolor=\color[gray]{.4}}
+\lstset{captionpos=b}
+\lstset{aboveskip=0.5cm,belowskip=0.5cm}
+\lstset{numbers=left}
+\lstset{columns=fixed}
+
+
+
+\newcommand{\code}[1]{\lstinline{#1}}
+
+\setlength{\parskip}{.7em}
+
+\begin{document}
+
+
+\begin{flushleft}
+\includegraphics[scale=0.3]{logo_ist.jpeg}
+\end{flushleft}
+
+
+\vspace{1cm}
+
+\begin{center}{
+\scshape{\LARGE Wolves and squirrel : Part 2 }}
+
+\vspace{0.5cm}
+\hbox{\raisebox{0.4em}{\vrule depth 0pt height 0.05cm width 16cm}}
+{\setlength{\parskip}{0.2cm}
+
+ \Huge
+ \bfseries
+ \LARGE  Parallel and Distributed Computing
+ \\
+CPD \\
+
+\vspace{0.2cm}
+
+}
+\vspace{0.5cm}
+
+\hbox{\raisebox{0.4em}{\vrule depth 0pt height 0.05cm width 16cm}}
+\vspace{2.5cm}
+
+
+\end{center}
+
+\vspace{3cm}
+
+
+\vfill
+\begin{flushright}
+\textbf{Group 30 :}\\
+Cappart Quentin (77827)\\
+Mikołaj Jakubowski (77610)\\
+Paulo Tome (72419)\\
+
+\end{flushright}
+\newpage
+
+\setcounter{page}{1}
+
+\renewcommand\thepage{\arabic{page}}
+
+
+\newpage
+
+\section*{MPI Architecture}
+
+Our program is based on a Master and Servant model.
+In this model, we have two sorts of nodes, the master and the servants.
+In a few words, the master is the coordinator of the work and the rest is dealing only with a part of the total board.
+Let's describe all of this more concretely.
+
+\paragraph{MPI Message}
+~\\
+
+We have several types of messages used for communication:
+
+\begin{enumerate}
+ \item \texttt{NEW\_BOARD(from:Position, to:Position)} : Message sent by the master to the servants to assign them a part of the board.
+ \item \texttt{UPDATE\_CELL(c : cell\_t)} : Message sent by the master or by the servants to notify a modification on particular cell.
+ \item \texttt{FINISHED()} : Message sent by the master or by the servants to notify the finishing of a some task.
+ \item \texttt{START\_NEXT\_GENERATION(RED or BLACK)} : Message sent by the master to tell the servants to begin the computation
+ of a new generation.
+\end{enumerate}
+
+\paragraph{Master}
+~\\
+
+There is only one master in the program. He's in charge of the coordination of all the work. He does the following actions :
+
+\begin{lstlisting}
+Load the world from the input file
+Split the world in different parts (One per servant)
+Send position of a sub-board to every servant.
+
+for i in 0 -> 2*Nb of generations:
+    Send START_NEXT_GENERATION(color) to every node
+    Listen for incoming updates and save them
+    Count received FINISHED messages
+    if(count == Nb of slaves):
+		break;
+    Send stored updates to all servants
+    Send FINISHED to all servants
+    
+Send FINISHED to all servants // all generations are finished
+Listen for UPDATE_CELL and save them to master board
+Count FINISHED messages
+if(count == Nb of slaves):
+    Print output
+    Exit
+\end{lstlisting}
+
+
+\paragraph{Servants}
+~\\
+
+All the other computers are servants of the master. Each of them receives a sub-board. The distribution of the work follow this idea.
+Each servants do the following actions :
+
+\begin{lstlisting}
+ Load the world from a file
+ Listen for NEW_BOARD message to select a piece
+ 
+ while true:
+    Listen for message
+    if(message = FINISHED):
+		break;
+    elif(message = START_NEXT_GENERATION(genInfo):
+    Compute its part of the board
+    Send UPDATE_CELL to the master the message with the modified cells
+    Send FINISHED to the master
+    Listen for UPDATE_CELL messages from master
+    Update the cells and resolve conflicts
+    Listen for FINISHED message from master
+    
+ Sends UPDATE_CELL to the master with all the cells.
+ Exit
+\end{lstlisting}
+
+\section*{Conflict resolution}
+Given that the algorithm follows the same idea as the serial version, the conflict resolution will be the same. 
+The only difference is in the sub-board edges where the servants need information about a part of the board that not belongs to them.
+In these cases, it's the master that's in charge to send messages to ensure the consistency of the board. Servants upon receiveing a cell have to update the usual way.
+\section*{Load balancing}
+With this model, all servants receive a part of the board of the same size\footnote{Except the last, due to the remainder of the division.}.
+However, the number of dynamic elements in each parts is not taken into account for the shattering of the board. So it's possible
+that some servant has more or less work to do.
+\section*{Performances analysis}
+
+The following tables recap the execution time of the MPI version with severals numbers of nodes in local and in the \texttt{Borg} cluster.
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c||c|c|c|c|}
+  \hline
+    Instance     &  2 nodes   & 4 nodes  & 8 nodes  \\
+  \hline
+    ex3.in       &    6 sec       & 8 sec       &  13 sec \\
+  \hline
+    world\_10.in &    5 sec      & 8 sec      &  9 sec \\
+  \hline
+   world\_100.in &    10 sec     & 10 sec     &  14 sec \\
+  \hline
+  world\_1000.in &     6 min 1 sec   & 3 min 52 sec      & 3 min 19 sec  \\
+  \hline
+  world\_10000.in\footnote{Tests made a different day on the cluster} &     > 30 min        &          > 30 min              &3 min 33 sec \\
+  \hline
+\end{tabular}
+\caption{Performances for the different instances on \texttt{Borg}.}
+\end{table}
+
+\begin{table}[!ht]
+\centering
+\begin{tabular}{|c||c|c|c|c|}
+  \hline
+    Instance     & Serial   & 2 nodes   & 4 nodes   \\
+  \hline
+    ex3.in       &    1.17 sec   &  1.02 sec  & 1.77 sec  \\ 
+  \hline
+    world\_10.in &    0.028 sec   &  0.04 sec      & 0.06 sec   \\ 
+  \hline
+   world\_100.in &    1.92 sec   &   1.89 sec     &  1.82 sec   \\ 
+  \hline
+  world\_1000.in &    3 min 55 sec  &    4 min 27sec   & 3 min 58 sec   \\ 
+  \hline
+\end{tabular}
+\caption{Performances for the different instances in local.}
+\end{table}
+
+
+At first sight we can observe that the execution time tends to increase with the number of nodes for the small instances, and
+to decrease for the big ones. This can be explained easily. The bottleneck of a distributed program is the cost of the communications
+between the nodes. If a node has very little work to do it spends almost all of its time sending or receiving.
+Contrariwise, for the biggest, we can see the interest of the distribution. The computation of the board begins to be costly, and
+the distribution between servants is useful. We can see it for the \texttt{world\_1000.in} instance where the execution time
+significantly decreases\footnote{In the \footnote{Cluster}}. However, we see that in local, for all of these instances, the MPI version doesn't beat the serial one.
+We suspect a communication cost too high.
+\\
+
+Another issue to point out is that in our design one of the nodes is doing no computation. The master is just a director which tells all other nodes what to do. His role is very important but it reduces our oportunity to have high speedup. This where the Amdhal's law hits us.
+\\
+
+\section*{Conclusion}
+During this semester we run the same program in three different execution modes. First in serial mode we saw that it takes almost no time to do little computation. Next with OpenMP we saw the advantage of using multiple cores for a bit larger problems but was slower for small ones. Then in this exercie we tested MPI version which showed us advantages of distibuted enviroment. Startup time of a task was very long and a lot of time was consumed by communication but by smart desgin we were able to reduce both and show that for huge problems it is the only way to have acceptable execution times. 
+
+\end{document}
+
